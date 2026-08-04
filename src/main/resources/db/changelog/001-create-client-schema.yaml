@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-addresses
+      author: keenanbu
+      changes:
+        - createTable:
+            tableName: addresses
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: country
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: city
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: street
+                  type: VARCHAR(256)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 002-create-clients
+      author: keenanbu
+      changes:
+        - createTable:
+            tableName: clients
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: client_name
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: client_surname
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: birthday
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: gender
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: registration_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: address_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_clients_address_id
+                    references: addresses(id)

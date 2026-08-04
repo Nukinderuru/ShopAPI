@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shop Stats Distribution</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #101826;
+            color: #f3f4f6;
+        }
+
+        main {
+            width: min(720px, calc(100% - 32px));
+            padding: 32px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        img {
+            display: block;
+            width: min(100%, 320px);
+            margin-top: 24px;
+            border-radius: 12px;
+        }
+
+        a {
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Shop Nginx Front Door</h1>
+        <p>This distribution is served by Nginx from the root path.</p>
+        <ul>
+            <li><a href="/api/v1">Swagger UI</a></li>
+            <li><a href="/admin/">pgAdmin</a></li>
+            <li><a href="/status">Nginx status</a></li>
+        </ul>
+        <img src="/image.png" alt="Nginx route illustration">
+    </main>
+</body>
+</html>

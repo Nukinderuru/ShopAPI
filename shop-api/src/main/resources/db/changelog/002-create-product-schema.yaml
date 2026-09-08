@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 003-create-images
-      author: keenanbu
+      author: nukinderuru
       changes:
         - createTable:
             tableName: images
@@ -19,7 +19,7 @@ databaseChangeLog:
                     nullable: false
   - changeSet:
       id: 004-create-suppliers
-      author: keenanbu
+      author: nukinderuru
       changes:
         - createTable:
             tableName: suppliers
@@ -49,7 +49,7 @@ databaseChangeLog:
                     nullable: false
   - changeSet:
       id: 005-create-products
-      author: keenanbu
+      author: nukinderuru
       changes:
         - createTable:
             tableName: products

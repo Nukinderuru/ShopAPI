@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 001-create-addresses
-      author: keenanbu
+      author: nukinderuru
       changes:
         - createTable:
             tableName: addresses
@@ -29,7 +29,7 @@ databaseChangeLog:
                     nullable: false
   - changeSet:
       id: 002-create-clients
-      author: keenanbu
+      author: nukinderuru
       changes:
         - createTable:
             tableName: clients

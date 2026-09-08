@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package com.nukinderuru.auth;
+
+option java_multiple_files = true;
+option java_package = "com.nukinderuru.auth.grpc";
+option java_outer_classname = "AuthProto";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (TokenResponse);
+  rpc Authenticate(AuthRequest) returns (TokenResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string phone = 4;
+  string password = 5;
+}
+
+message AuthRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message TokenResponse {
+  string token = 1;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string email = 3;
+}
+
+message ChangePasswordRequest {
+  string token = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {
+  bool success = 1;
+}
+
+message ResetPasswordRequest {
+  string email = 1;
+}
+
+message ResetPasswordResponse {
+  bool success = 1;
+}

@@ -2,9 +2,10 @@
 
 A learning project focused on backend development and web server configuration.
 
-The project consists of two parts:
+The project consists of three parts:
 
 - **RESTful Shop API** implemented with Kotlin, Ktor and PostgreSQL.
+- **Authorization service** implemented as a separate gRPC application with its own PostgreSQL database.
 - **Nginx infrastructure** providing reverse proxying, routing, load balancing, caching, compression and HTTPS.
 
 The goal of the project was not only to implement a REST API, but also to understand how a production-like web infrastructure is built around a backend application.
@@ -30,6 +31,37 @@ The goal of the project was not only to implement a REST API, but also to unders
 - Binary image download
 - OpenAPI specification generation
 - Swagger UI
+- Integration with the authorization service through gRPC
+- Public registration, authentication and password reset endpoints
+- JWT-based authorization for protected endpoints
+- Custom route authorization marker with middleware-based token validation
+
+### Authorization service
+
+- Separate `auth-service` application
+- Separate PostgreSQL database for authorization data
+- gRPC-only API described in `auth-contract/src/main/proto/auth.proto`
+- User registration with signed JWT token response
+- Username/password authentication with signed JWT token response
+- JWT token validation for the shop API middleware
+- Password change by valid token and old password
+- Password reset with a temporary password printed to the auth-service console
+- Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes, not plain text
+- Dependency injection through Koin interfaces
+
+### Shop API authorization
+
+- Public endpoints:
+    - `POST /api/v1/register`
+    - `POST /api/v1/auth`
+    - `POST /api/v1/reset`
+- Public catalog endpoints:
+    - product read endpoints
+    - product image read endpoint
+- Protected endpoints require `Authorization: Bearer <jwt>`
+- Client and supplier endpoints are protected, including `GET` requests
+- Product and image mutation endpoints are protected
+- Invalid, missing or malformed tokens return `401 Unauthorized`
 
 ---
 
@@ -57,6 +89,10 @@ The goal of the project was not only to implement a REST API, but also to unders
 - Ktor
 - PostgreSQL
 - Exposed
+- Liquibase
+- gRPC / Protocol Buffers
+- JWT
+- Koin
 - OpenAPI / Swagger
 
 ### Infrastructure
@@ -73,6 +109,10 @@ The goal of the project was not only to implement a REST API, but also to unders
 During this project I explored:
 
 - RESTful API design principles
+- gRPC service contracts and generated Kotlin stubs
+- JWT-based authentication and authorization
+- Password hashing with salt
+- Dependency injection with interfaces and IOC container
 - HTTP methods and status codes
 - OpenAPI documentation generation
 - Reverse proxying
@@ -130,6 +170,79 @@ A local HTTPS environment is configured using:
 - self-signed TLS certificate
 - OpenSSL
 - Nginx SSL termination
+
+---
+
+## Local Run
+
+### 1. Start PostgreSQL databases
+
+The shop API and auth service use different PostgreSQL databases.
+
+If you use Docker Compose from this repository:
+
+```bash
+AUTH_JWT_SECRET=local-secret-local-secret-local-secret docker compose up -d postgres auth-postgres
+```
+
+If you use your own PostgreSQL or Podman containers, pass matching JDBC URLs through environment variables when starting the applications.
+
+### 2. Start auth-service
+
+```bash
+./gradlew :auth-service:run
+```
+
+### 3. Start shop-api
+
+```bash
+./gradlew :shop-api:run
+```
+
+### 4. Open Swagger
+
+When running `shop-api` directly:
+
+```text
+http://localhost:8080/swagger
+```
+
+When running through nginx from Docker Compose:
+
+```text
+http://localhost:8081/swagger
+```
+
+### 5. Try authentication
+
+Register a user:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"example@gmail.com","firstName":"John","lastName":"Doe","phone":"+79991234567","password":"secretPassword123!"}'
+```
+
+Authenticate:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth \
+  -H "Content-Type: application/json" \
+  -d '{"email":"example@gmail.com","password":"secretPassword123!"}'
+```
+
+Call a protected endpoint:
+
+```bash
+curl http://localhost:8080/api/v1/clients \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Call a public catalog endpoint:
+
+```bash
+curl http://localhost:8080/api/v1/products/available
+```
 
 ---
 

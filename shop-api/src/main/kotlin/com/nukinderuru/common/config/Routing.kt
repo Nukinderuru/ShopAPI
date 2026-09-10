@@ -38,8 +38,6 @@ fun Application.configureRouting() {
             }
         }
 
-        authRoutes()
-
         route("/api/v1") {
             authRoutes()
             clientRoutes()

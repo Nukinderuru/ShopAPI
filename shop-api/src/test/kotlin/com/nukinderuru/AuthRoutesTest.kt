@@ -6,6 +6,7 @@ import com.nukinderuru.auth.AuthHttpRequest
 import com.nukinderuru.auth.RegisterHttpRequest
 import com.nukinderuru.auth.ResetPasswordHttpRequest
 import com.nukinderuru.common.config.configureSerialization
+import com.nukinderuru.common.config.configureRouting
 import com.nukinderuru.common.config.configureStatusPages
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -26,11 +27,35 @@ import kotlin.test.assertTrue
 
 class AuthRoutesTest {
     @Test
-    fun `root register proxies to auth client and returns token`() = testApplication {
+    fun `root register is not registered`() = testApplication {
+        val authClient = FakeAuthClient(registerToken = "register-token")
+        application { productionRoutingModule(authClient) }
+
+        val response = client.post("/register") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                """
+                {
+                  "email":"user@example.com",
+                  "firstName":"John",
+                  "lastName":"Doe",
+                  "phone":"+79991234567",
+                  "password":"secret123"
+                }
+                """.trimIndent(),
+            )
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals(null, authClient.lastRegisterRequest)
+    }
+
+    @Test
+    fun `api v1 register proxies to auth client and returns token`() = testApplication {
         val authClient = FakeAuthClient(registerToken = "register-token")
         application { testModule(authClient) }
 
-        val response = client.post("/register") {
+        val response = client.post("/api/v1/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 """
@@ -85,12 +110,26 @@ class AuthRoutesTest {
         val authClient = FakeAuthClient(authFailure = Status.UNAUTHENTICATED.asRuntimeException())
         application { testModule(authClient) }
 
-        val response = client.post("/auth") {
+        val response = client.post("/api/v1/auth") {
             contentType(ContentType.Application.Json)
             setBody("""{"email":"user@example.com","password":"wrong"}""")
         }
 
         assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
+    fun `auth returns 401 when grpc kotlin client throws status exception`() = testApplication {
+        val authClient = FakeAuthClient(authFailure = Status.UNAUTHENTICATED.withDescription("Invalid credentials").asException())
+        application { testModule(authClient) }
+
+        val response = client.post("/api/v1/auth") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"email":"user@example.com","password":"wrong"}""")
+        }
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        assertTrue(response.bodyAsText().contains("Invalid credentials"))
     }
 
     private fun io.ktor.server.application.Application.testModule(authClient: AuthClient) {
@@ -100,11 +139,19 @@ class AuthRoutesTest {
             modules(module { single<AuthClient> { authClient } })
         }
         routing {
-            authRoutes()
             route("/api/v1") {
                 authRoutes()
             }
         }
+    }
+
+    private fun io.ktor.server.application.Application.productionRoutingModule(authClient: AuthClient) {
+        configureSerialization()
+        configureStatusPages()
+        install(Koin) {
+            modules(module { single<AuthClient> { authClient } })
+        }
+        configureRouting()
     }
 }
 
@@ -112,7 +159,7 @@ private class FakeAuthClient(
     private val registerToken: String = "token",
     private val authToken: String = "token",
     private val resetSuccess: Boolean = true,
-    private val authFailure: RuntimeException? = null,
+    private val authFailure: Exception? = null,
 ) : AuthClient {
     var lastRegisterRequest: RegisterHttpRequest? = null
     var lastAuthRequest: AuthHttpRequest? = null

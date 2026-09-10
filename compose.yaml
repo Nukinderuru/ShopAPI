@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: shop_user
       POSTGRES_PASSWORD: shoppass
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -17,54 +17,103 @@ services:
       retries: 10
       start_period: 10s
 
+  auth-postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: auth-postgres
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: authpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: auth-service
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+    environment:
+      AUTH_GRPC_PORT: 9090
+      AUTH_DATABASE_JDBC_URL: jdbc:postgresql://auth-postgres:5432/auth
+      AUTH_DATABASE_USERNAME: auth_user
+      AUTH_DATABASE_PASSWORD: authpass
+      AUTH_DATABASE_MAXIMUM_POOL_SIZE: 10
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?AUTH_JWT_SECRET is required}
+      AUTH_JWT_TTL_SECONDS: 86400
+    expose:
+      - 9090
+
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: shop-api/Dockerfile
     container_name: shop-app
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
     environment:
       PORT: 8080
       DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/shop
       DATABASE_USERNAME: shop_user
       DATABASE_PASSWORD: shoppass
       DATABASE_MAXIMUM_POOL_SIZE: 10
+      AUTH_GRPC_HOST: auth-service
+      AUTH_GRPC_PORT: 9090
     expose:
       - 8080
 
   app-read-1:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: shop-api/Dockerfile
     container_name: shop-app-read-1
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
     environment:
       PORT: 8081
       DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/shop?options=-c%20default_transaction_read_only%3Don
       DATABASE_USERNAME: shop_user
       DATABASE_PASSWORD: shoppass
       DATABASE_MAXIMUM_POOL_SIZE: 10
+      AUTH_GRPC_HOST: auth-service
+      AUTH_GRPC_PORT: 9090
     expose:
       - 8081
 
   app-read-2:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: shop-api/Dockerfile
     container_name: shop-app-read-2
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
     environment:
       PORT: 8082
       DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/shop?options=-c%20default_transaction_read_only%3Don
       DATABASE_USERNAME: shop_user
       DATABASE_PASSWORD: shoppass
       DATABASE_MAXIMUM_POOL_SIZE: 10
+      AUTH_GRPC_HOST: auth-service
+      AUTH_GRPC_PORT: 9090
     expose:
       - 8082
 
@@ -75,6 +124,7 @@ services:
       - app
       - app-read-1
       - app-read-2
+      - auth-service
       - pgadmin
     ports:
       - "8081:80"
@@ -100,4 +150,5 @@ services:
 
 volumes:
   postgres-data:
+  auth-postgres-data:
   pgadmin-data:

@@ -2,7 +2,7 @@
   "Servers": {
     "1": {
       "Name": "Shop Postgres",
-      "Group": "School21",
+      "Group": "Nukinderuru",
       "Host": "postgres",
       "Port": 5432,
       "MaintenanceDB": "shop",

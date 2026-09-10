@@ -1,0 +1,101 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-images
+      author: nukinderuru
+      changes:
+        - createTable:
+            tableName: images
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: image
+                  type: BYTEA
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 004-create-suppliers
+      author: nukinderuru
+      changes:
+        - createTable:
+            tableName: suppliers
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: address_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_suppliers_address_id
+                    references: addresses(id)
+              - column:
+                  name: phone_number
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 005-create-products
+      author: nukinderuru
+      changes:
+        - createTable:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price
+                  type: DECIMAL(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: available_stock
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_update_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: supplier_id
+                  type: UUID
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_products_supplier_id
+                    references: suppliers(id)
+              - column:
+                  name: image_id
+                  type: UUID
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_products_image_id
+                    references: images(id)

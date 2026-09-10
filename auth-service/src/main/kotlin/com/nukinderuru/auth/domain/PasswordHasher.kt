@@ -1,4 +1,4 @@
-package com.school21.auth.domain
+package com.nukinderuru.auth.domain
 
 import java.security.SecureRandom
 import java.security.MessageDigest
@@ -14,20 +14,20 @@ interface PasswordHasher {
 
 data class HashedPassword(
     val hash: String,
-    val salt: String,
+    val salt: String
 )
 
 class Pbkdf2PasswordHasher(
     private val iterations: Int = 120_000,
     private val keyLength: Int = 256,
-    private val secureRandom: SecureRandom = SecureRandom(),
+    private val secureRandom: SecureRandom = SecureRandom()
 ) : PasswordHasher {
     override fun hash(password: String): HashedPassword {
         val salt = ByteArray(16)
         secureRandom.nextBytes(salt)
         return HashedPassword(
             hash = hashWithSalt(password, salt),
-            salt = Base64.getEncoder().encodeToString(salt),
+            salt = Base64.getEncoder().encodeToString(salt)
         )
     }
 

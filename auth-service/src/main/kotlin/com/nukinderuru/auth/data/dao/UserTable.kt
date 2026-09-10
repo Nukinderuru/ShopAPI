@@ -1,4 +1,4 @@
-package com.school21.auth.data.dao
+package com.nukinderuru.auth.data.dao
 
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass

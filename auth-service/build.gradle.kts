@@ -18,7 +18,7 @@ repositories {
 }
 
 application {
-    mainClass.set("com.school21.auth.AuthApplicationKt")
+    mainClass.set("com.nukinderuru.auth.AuthApplicationKt")
 }
 
 kotlin {

@@ -1,4 +1,4 @@
-package com.school21.auth.domain
+package com.nukinderuru.auth.domain
 
 import java.util.UUID
 import kotlin.test.Test

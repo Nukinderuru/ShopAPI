@@ -1,4 +1,4 @@
-package com.school21.auth.domain
+package com.nukinderuru.auth.domain
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -14,13 +14,13 @@ interface JwtTokenService {
 
 data class TokenPrincipal(
     val userId: UUID,
-    val email: String,
+    val email: String
 )
 
 class Hs256JwtTokenService(
     secret: String,
     private val ttlSeconds: Long,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.systemUTC()
 ) : JwtTokenService {
     private val algorithm = Algorithm.HMAC256(secret)
 
@@ -39,7 +39,7 @@ class Hs256JwtTokenService(
         val decoded = verifier.verify(token)
         TokenPrincipal(
             userId = UUID.fromString(decoded.subject),
-            email = decoded.getClaim("email").asString(),
+            email = decoded.getClaim("email").asString()
         )
     }.getOrNull()
 }

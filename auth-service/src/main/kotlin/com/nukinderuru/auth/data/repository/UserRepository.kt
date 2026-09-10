@@ -1,4 +1,4 @@
-package com.school21.auth.data.repository
+package com.nukinderuru.auth.data.repository
 
 import java.util.UUID
 
@@ -8,7 +8,7 @@ data class NewUser(
     val lastName: String,
     val phone: String,
     val passwordHash: String,
-    val passwordSalt: String,
+    val passwordSalt: String
 )
 
 data class AuthUser(
@@ -18,7 +18,7 @@ data class AuthUser(
     val lastName: String,
     val phone: String,
     val passwordHash: String,
-    val passwordSalt: String,
+    val passwordSalt: String
 )
 
 interface UserRepository {

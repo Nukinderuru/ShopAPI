@@ -1,4 +1,4 @@
-package com.school21.auth.domain
+package com.nukinderuru.auth.domain
 
 import kotlin.test.Test
 import kotlin.test.assertFalse

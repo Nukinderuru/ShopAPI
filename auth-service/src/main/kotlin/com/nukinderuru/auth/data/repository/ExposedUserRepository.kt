@@ -1,7 +1,7 @@
-package com.school21.auth.data.repository
+package com.nukinderuru.auth.data.repository
 
-import com.school21.auth.data.dao.UserEntity
-import com.school21.auth.data.dao.UserTable
+import com.nukinderuru.auth.data.dao.UserEntity
+import com.nukinderuru.auth.data.dao.UserTable
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.Database
@@ -52,7 +52,7 @@ class ExposedUserRepository(private val database: Database) : UserRepository {
         lastName = lastName,
         phone = phone,
         passwordHash = passwordHash,
-        passwordSalt = passwordSalt,
+        passwordSalt = passwordSalt
     )
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =

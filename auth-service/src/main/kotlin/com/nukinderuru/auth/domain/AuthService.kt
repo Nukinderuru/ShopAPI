@@ -1,8 +1,8 @@
-package com.school21.auth.domain
+package com.nukinderuru.auth.domain
 
-import com.school21.auth.data.repository.DuplicateUserException
-import com.school21.auth.data.repository.NewUser
-import com.school21.auth.data.repository.UserRepository
+import com.nukinderuru.auth.data.repository.DuplicateUserException
+import com.nukinderuru.auth.data.repository.NewUser
+import com.nukinderuru.auth.data.repository.UserRepository
 import java.security.SecureRandom
 
 interface AuthService {
@@ -18,7 +18,7 @@ data class RegisterCommand(
     val firstName: String,
     val lastName: String,
     val phone: String,
-    val password: String,
+    val password: String
 )
 
 open class AuthException(message: String) : RuntimeException(message)
@@ -30,7 +30,7 @@ class DefaultAuthService(
     private val passwordHasher: PasswordHasher,
     private val tokenService: JwtTokenService,
     private val temporaryPasswordSink: (String) -> Unit = ::println,
-    private val secureRandom: SecureRandom = SecureRandom(),
+    private val secureRandom: SecureRandom = SecureRandom()
 ) : AuthService {
     override suspend fun register(request: RegisterCommand): String {
         validateRegisterCommand(request)
@@ -43,8 +43,8 @@ class DefaultAuthService(
                     lastName = request.lastName,
                     phone = request.phone,
                     passwordHash = password.hash,
-                    passwordSalt = password.salt,
-                ),
+                    passwordSalt = password.salt
+                )
             )
         } catch (cause: DuplicateUserException) {
             throw cause

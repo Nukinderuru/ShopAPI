@@ -8,8 +8,10 @@ import com.nukinderuru.domain.exception.ValidationException
 import com.nukinderuru.domain.exception.NotFoundException
 import io.ktor.http.HttpStatusCode
 import io.grpc.Status
+import io.grpc.StatusException
 import io.grpc.StatusRuntimeException
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.ContentTransformationException
@@ -83,20 +85,10 @@ fun Application.configureStatusPages() {
             )
         }
         exception<StatusRuntimeException> { call, cause ->
-            val statusCode = when (cause.status.code) {
-                Status.Code.UNAUTHENTICATED -> HttpStatusCode.Unauthorized
-                Status.Code.ALREADY_EXISTS -> HttpStatusCode.Conflict
-                Status.Code.INVALID_ARGUMENT -> HttpStatusCode.BadRequest
-                else -> HttpStatusCode.InternalServerError
-            }
-            val error = statusCode.description
-            call.respond(
-                statusCode, ErrorResponse(
-                    error,
-                    statusCode.value,
-                    cause.status.description ?: error,
-                )
-            )
+            call.respondGrpcStatus(cause.status)
+        }
+        exception<StatusException> { call, cause ->
+            call.respondGrpcStatus(cause.status)
         }
         exception<Throwable> { call, cause ->
             logger.error("Unhandled error on {} {}", call.request.httpMethod.value, call.request.uri, cause)
@@ -109,4 +101,21 @@ fun Application.configureStatusPages() {
             )
         }
     }
+}
+
+private suspend fun ApplicationCall.respondGrpcStatus(status: Status) {
+    val statusCode = when (status.code) {
+        Status.Code.UNAUTHENTICATED -> HttpStatusCode.Unauthorized
+        Status.Code.ALREADY_EXISTS -> HttpStatusCode.Conflict
+        Status.Code.INVALID_ARGUMENT -> HttpStatusCode.BadRequest
+        else -> HttpStatusCode.InternalServerError
+    }
+    val error = statusCode.description
+    respond(
+        statusCode, ErrorResponse(
+            error,
+            statusCode.value,
+            status.description ?: error,
+        )
+    )
 }

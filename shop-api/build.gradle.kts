@@ -16,6 +16,7 @@ val coroutinesVersion = project.property("coroutinesVersion") as String
 val kotlinxSerializationVersion = project.property("kotlinxSerializationVersion") as String
 val logbackVersion = project.property("logbackVersion") as String
 val testcontainersVersion = project.property("testcontainersVersion") as String
+val grpcVersion = project.property("grpcVersion") as String
 
 application {
     mainClass.set("io.ktor.server.netty.EngineMain")
@@ -34,6 +35,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":auth-contract"))
+
     // Ktor
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
@@ -66,6 +69,9 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
+
+    // gRPC
+    implementation("io.grpc:grpc-netty-shaded:$grpcVersion")
 
     // Logging
     implementation("ch.qos.logback:logback-classic:$logbackVersion")

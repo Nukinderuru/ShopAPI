@@ -2,10 +2,13 @@ package com.nukinderuru.common.config
 
 import com.fasterxml.jackson.core.JacksonException
 import com.nukinderuru.api.dtos.response.ErrorResponse
+import com.nukinderuru.auth.UnauthorizedException
 import com.nukinderuru.common.constants.ValidationConstants
 import com.nukinderuru.domain.exception.ValidationException
 import com.nukinderuru.domain.exception.NotFoundException
 import io.ktor.http.HttpStatusCode
+import io.grpc.Status
+import io.grpc.StatusRuntimeException
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -66,6 +69,32 @@ fun Application.configureStatusPages() {
                     ValidationConstants.NOT_FOUND,
                     HttpStatusCode.NotFound.value,
                     cause.message ?: ValidationConstants.ENTITY_NOT_FOUND
+                )
+            )
+        }
+        exception<UnauthorizedException> { call, cause ->
+            logger.warn("Unauthorized request on {} {}: {}", call.request.httpMethod.value, call.request.uri, cause.message)
+            call.respond(
+                HttpStatusCode.Unauthorized, ErrorResponse(
+                    "Unauthorized",
+                    HttpStatusCode.Unauthorized.value,
+                    cause.message ?: "Unauthorized",
+                )
+            )
+        }
+        exception<StatusRuntimeException> { call, cause ->
+            val statusCode = when (cause.status.code) {
+                Status.Code.UNAUTHENTICATED -> HttpStatusCode.Unauthorized
+                Status.Code.ALREADY_EXISTS -> HttpStatusCode.Conflict
+                Status.Code.INVALID_ARGUMENT -> HttpStatusCode.BadRequest
+                else -> HttpStatusCode.InternalServerError
+            }
+            val error = statusCode.description
+            call.respond(
+                statusCode, ErrorResponse(
+                    error,
+                    statusCode.value,
+                    cause.status.description ?: error,
                 )
             )
         }

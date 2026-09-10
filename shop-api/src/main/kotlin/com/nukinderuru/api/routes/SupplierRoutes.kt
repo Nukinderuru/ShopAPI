@@ -2,6 +2,10 @@ package com.nukinderuru.api.routes
 
 import com.nukinderuru.api.dtos.request.AddressRequest
 import com.nukinderuru.api.dtos.request.CreateSupplierRequest
+import com.nukinderuru.auth.authorizedDelete
+import com.nukinderuru.auth.authorizedGet
+import com.nukinderuru.auth.authorizedPatch
+import com.nukinderuru.auth.authorizedPost
 import com.nukinderuru.common.constants.ValidationConstants
 import com.nukinderuru.domain.service.SupplierService
 import io.ktor.http.HttpHeaders
@@ -10,10 +14,6 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 import java.util.UUID
@@ -28,7 +28,7 @@ fun Route.supplierRoutes() {
          * @description Returns all suppliers.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        get {
+        authorizedGet {
             call.respond(supplierService.getAllSuppliers())
         }
 
@@ -39,7 +39,7 @@ fun Route.supplierRoutes() {
          * @response 404 application/json ErrorResponse Supplier not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        get("/{id}") {
+        authorizedGet("/{id}") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseSupplierUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             call.respond(supplierService.getSupplierById(id))
@@ -52,7 +52,7 @@ fun Route.supplierRoutes() {
          * @response 400 application/json ErrorResponse Invalid request body.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        post {
+        authorizedPost {
             val request = call.receive<CreateSupplierRequest>()
             val createdSupplier = supplierService.createSupplier(request)
             call.response.header(HttpHeaders.Location, "/api/v1/suppliers/${createdSupplier.id}")
@@ -67,7 +67,7 @@ fun Route.supplierRoutes() {
          * @response 404 application/json ErrorResponse Supplier not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        patch("/{id}/address") {
+        authorizedPatch("/{id}/address") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseSupplierUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             val request = call.receive<AddressRequest>()
@@ -81,7 +81,7 @@ fun Route.supplierRoutes() {
          * @response 404 application/json ErrorResponse Supplier not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        delete("/{id}") {
+        authorizedDelete("/{id}") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseSupplierUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             supplierService.deleteSupplier(id)

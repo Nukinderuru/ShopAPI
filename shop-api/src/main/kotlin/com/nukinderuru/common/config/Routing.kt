@@ -1,6 +1,7 @@
 package com.nukinderuru.common.config
 
 import com.nukinderuru.api.routes.clientRoutes
+import com.nukinderuru.api.routes.authRoutes
 import com.nukinderuru.api.routes.imageRoutes
 import com.nukinderuru.api.routes.productRoutes
 import com.nukinderuru.api.routes.supplierRoutes
@@ -37,7 +38,10 @@ fun Application.configureRouting() {
             }
         }
 
+        authRoutes()
+
         route("/api/v1") {
+            authRoutes()
             clientRoutes()
             imageRoutes()
             productRoutes()

@@ -2,6 +2,10 @@ package com.nukinderuru.api.routes
 
 import com.nukinderuru.api.dtos.request.AddressRequest
 import com.nukinderuru.api.dtos.request.CreateClientRequest
+import com.nukinderuru.auth.authorizedDelete
+import com.nukinderuru.auth.authorizedGet
+import com.nukinderuru.auth.authorizedPatch
+import com.nukinderuru.auth.authorizedPost
 import com.nukinderuru.common.constants.ValidationConstants
 import com.nukinderuru.domain.service.ClientService
 import io.ktor.http.HttpHeaders
@@ -10,10 +14,6 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 import java.util.UUID
@@ -28,7 +28,7 @@ fun Route.clientRoutes() {
          * @response 400 application/json ErrorResponse Invalid query parameter values.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        get {
+        authorizedGet {
             val rawLimit = call.request.queryParameters[ValidationConstants.QUERY_PARAMETER_LIMIT]
             val rawOffset = call.request.queryParameters[ValidationConstants.QUERY_PARAMETER_OFFSET]
             val limit = rawLimit?.toIntOrNull()
@@ -50,7 +50,7 @@ fun Route.clientRoutes() {
          * @response 201 application/json CreatedClientResponse Created client.
          * @response 400 application/json ErrorResponse Invalid request body.
          */
-        post {
+        authorizedPost {
             val request = call.receive<CreateClientRequest>()
             val createdClient = clientService.createClient(request)
             call.response.header(HttpHeaders.Location, "/api/v1/clients/${createdClient.id}")
@@ -63,7 +63,7 @@ fun Route.clientRoutes() {
          * @response 400 application/json ErrorResponse Missing or invalid query parameters.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        get("/search") {
+        authorizedGet("/search") {
             val firstName = call.request.queryParameters[ValidationConstants.QUERY_PARAMETER_FIRST_NAME]
                 ?: throw IllegalArgumentException(
                     ValidationConstants.queryParameterRequired(ValidationConstants.QUERY_PARAMETER_FIRST_NAME),
@@ -83,7 +83,7 @@ fun Route.clientRoutes() {
          * @response 404 application/json ErrorResponse Client not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        get("/{id}") {
+        authorizedGet("/{id}") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             val client = clientService.getClientById(id)
@@ -97,7 +97,7 @@ fun Route.clientRoutes() {
          * @response 404 application/json ErrorResponse Client not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        delete("/{id}") {
+        authorizedDelete("/{id}") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             clientService.deleteClient(id)
@@ -112,7 +112,7 @@ fun Route.clientRoutes() {
          * @response 404 application/json ErrorResponse Client not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        patch("/{id}/address") {
+        authorizedPatch("/{id}/address") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             val request = call.receive<AddressRequest>()

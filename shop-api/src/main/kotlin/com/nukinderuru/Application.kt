@@ -1,6 +1,7 @@
 package com.nukinderuru
 
 import com.nukinderuru.common.config.configureDependencyInjection
+import com.nukinderuru.common.config.configureAuthorization
 import com.nukinderuru.common.config.configureLogging
 import com.nukinderuru.common.config.configureRouting
 import com.nukinderuru.common.config.configureSerialization
@@ -12,5 +13,6 @@ fun Application.module() {
     configureSerialization()
     configureStatusPages()
     configureDependencyInjection()
+    configureAuthorization()
     configureRouting()
 }

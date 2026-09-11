@@ -249,6 +249,177 @@ class ClientRoutesTest {
         assertEquals(HttpStatusCode.OK, openApiResponse.status)
     }
 
+    @Test
+    fun `openapi marks authorized routes with bearer auth`() = testApplication {
+        val service = mockk<ClientService>(relaxed = true)
+
+        environment { config = MapApplicationConfig() }
+        application {
+            configureSerialization()
+            configureStatusPages()
+            install(Koin) {
+                modules(module { single { service } })
+            }
+            configureRouting()
+        }
+
+        val openApi = objectMapper.readTree(client.get("/swagger/documentation.yaml").bodyAsText())
+
+        val bearerAuth = openApi.at("/components/securitySchemes/bearerAuth")
+        assertEquals("http", bearerAuth["type"].asText())
+        assertEquals("bearer", bearerAuth["scheme"].asText())
+        assertEquals("JWT", bearerAuth["bearerFormat"].asText())
+
+        val clientsGetSecurity = openApi.at("/paths/~1api~1v1~1clients/get/security")
+        assertEquals("bearerAuth", clientsGetSecurity[0].fieldNames().next())
+
+        val authPostSecurity = openApi.at("/paths/~1api~1v1~1auth/post/security")
+        assertTrue(authPostSecurity.isMissingNode)
+    }
+
+    @Test
+    fun `openapi exposes request body for authorized product creation`() = testApplication {
+        val service = mockk<ClientService>(relaxed = true)
+
+        environment { config = MapApplicationConfig() }
+        application {
+            configureSerialization()
+            configureStatusPages()
+            install(Koin) {
+                modules(module { single { service } })
+            }
+            configureRouting()
+        }
+
+        val openApi = objectMapper.readTree(client.get("/swagger/documentation.yaml").bodyAsText())
+
+        val productPost = openApi.at("/paths/~1api~1v1~1products/post")
+        assertEquals("bearerAuth", productPost["security"][0].fieldNames().next())
+
+        val requestBodySchema = productPost.at("/requestBody/content/application~1json/schema")
+        assertTrue(requestBodySchema.has("\$ref"), productPost.toPrettyString())
+        assertEquals("#/components/schemas/CreateProductRequest", requestBodySchema["\$ref"].asText())
+    }
+
+    @Test
+    fun `openapi exposes request bodies for authorized client mutations`() = testApplication {
+        val service = mockk<ClientService>(relaxed = true)
+
+        environment { config = MapApplicationConfig() }
+        application {
+            configureSerialization()
+            configureStatusPages()
+            install(Koin) {
+                modules(module { single { service } })
+            }
+            configureRouting()
+        }
+
+        val openApi = objectMapper.readTree(client.get("/swagger/documentation.yaml").bodyAsText())
+
+        val clientPost = openApi.at("/paths/~1api~1v1~1clients/post")
+        assertEquals("bearerAuth", clientPost["security"][0].fieldNames().next())
+        assertEquals(
+            "#/components/schemas/CreateClientRequest",
+            clientPost.at("/requestBody/content/application~1json/schema/\$ref").asText(),
+        )
+
+        val clientAddressPatch = openApi.at("/paths/~1api~1v1~1clients~1{id}~1address/patch")
+        assertEquals("bearerAuth", clientAddressPatch["security"][0].fieldNames().next())
+        assertEquals(
+            "#/components/schemas/AddressRequest",
+            clientAddressPatch.at("/requestBody/content/application~1json/schema/\$ref").asText(),
+        )
+    }
+
+    @Test
+    fun `openapi exposes request bodies for authorized supplier mutations`() = testApplication {
+        val service = mockk<ClientService>(relaxed = true)
+
+        environment { config = MapApplicationConfig() }
+        application {
+            configureSerialization()
+            configureStatusPages()
+            install(Koin) {
+                modules(module { single { service } })
+            }
+            configureRouting()
+        }
+
+        val openApi = objectMapper.readTree(client.get("/swagger/documentation.yaml").bodyAsText())
+
+        val supplierPost = openApi.at("/paths/~1api~1v1~1suppliers/post")
+        assertEquals("bearerAuth", supplierPost["security"][0].fieldNames().next())
+        assertEquals(
+            "#/components/schemas/CreateSupplierRequest",
+            supplierPost.at("/requestBody/content/application~1json/schema/\$ref").asText(),
+        )
+
+        val supplierAddressPatch = openApi.at("/paths/~1api~1v1~1suppliers~1{id}~1address/patch")
+        assertEquals("bearerAuth", supplierAddressPatch["security"][0].fieldNames().next())
+        assertEquals(
+            "#/components/schemas/AddressRequest",
+            supplierAddressPatch.at("/requestBody/content/application~1json/schema/\$ref").asText(),
+        )
+    }
+
+    @Test
+    fun `openapi exposes request bodies for authorized image mutations`() = testApplication {
+        val service = mockk<ClientService>(relaxed = true)
+
+        environment { config = MapApplicationConfig() }
+        application {
+            configureSerialization()
+            configureStatusPages()
+            install(Koin) {
+                modules(module { single { service } })
+            }
+            configureRouting()
+        }
+
+        val openApi = objectMapper.readTree(client.get("/swagger/documentation.yaml").bodyAsText())
+
+        val imagePut = openApi.at("/paths/~1api~1v1~1images~1{id}/put")
+        assertEquals("bearerAuth", imagePut["security"][0].fieldNames().next())
+        assertTrue(imagePut.at("/requestBody/content/application~1octet-stream/schema").isMissingNode.not())
+
+        val productImagePost = openApi.at("/paths/~1api~1v1~1products~1{id}~1image/post")
+        assertEquals("bearerAuth", productImagePost["security"][0].fieldNames().next())
+        assertTrue(productImagePost.at("/requestBody/content/application~1octet-stream/schema").isMissingNode.not())
+    }
+
+    @Test
+    fun `openapi resolves public auth request schemas`() = testApplication {
+        val service = mockk<ClientService>(relaxed = true)
+
+        environment { config = MapApplicationConfig() }
+        application {
+            configureSerialization()
+            configureStatusPages()
+            install(Koin) {
+                modules(module { single { service } })
+            }
+            configureRouting()
+        }
+
+        val openApi = objectMapper.readTree(client.get("/swagger/documentation.yaml").bodyAsText())
+
+        assertEquals(
+            "#/components/schemas/RegisterHttpRequest",
+            openApi.at("/paths/~1api~1v1~1register/post/requestBody/content/application~1json/schema/\$ref").asText(),
+        )
+        assertEquals(
+            "#/components/schemas/AuthHttpRequest",
+            openApi.at("/paths/~1api~1v1~1auth/post/requestBody/content/application~1json/schema/\$ref").asText(),
+        )
+        assertEquals(
+            "#/components/schemas/ResetPasswordHttpRequest",
+            openApi.at("/paths/~1api~1v1~1reset/post/requestBody/content/application~1json/schema/\$ref").asText(),
+        )
+        assertTrue(openApi.at("/components/schemas/RegisterHttpRequest/properties/email").has("type"))
+        assertTrue(openApi.toString().contains("Failed to resolve schema").not())
+    }
+
     private fun io.ktor.server.application.Application.testModule(service: ClientService) {
         configureSerialization()
         configureStatusPages()
@@ -273,7 +444,7 @@ class ClientRoutesTest {
             id = UUID.fromString("550e8400-e29b-41d4-a716-446655440100"),
             country = "Russia",
             city = "Moscow",
-            street = "Tverskaya 1",
-        ),
+            street = "Tverskaya 1"
+        )
     )
 }

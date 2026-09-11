@@ -4,7 +4,7 @@ import com.nukinderuru.auth.AuthClient
 import com.nukinderuru.auth.AuthHttpRequest
 import com.nukinderuru.auth.RegisterHttpRequest
 import com.nukinderuru.auth.ResetPasswordHttpRequest
-import com.nukinderuru.auth.authorized
+import com.nukinderuru.auth.requireAuthorization
 import com.nukinderuru.common.config.configureAuthorization
 import com.nukinderuru.common.config.configureSerialization
 import com.nukinderuru.common.config.configureStatusPages
@@ -78,11 +78,9 @@ class AuthorizationTest {
         }
         configureAuthorization()
         routing {
-            authorized {
-                post("/protected") {
-                    call.respondText("protected")
-                }
-            }
+            post("/protected") {
+                call.respondText("protected")
+            }.requireAuthorization()
         }
     }
 }

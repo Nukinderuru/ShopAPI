@@ -2,10 +2,7 @@ package com.nukinderuru.api.routes
 
 import com.nukinderuru.api.dtos.request.AddressRequest
 import com.nukinderuru.api.dtos.request.CreateClientRequest
-import com.nukinderuru.auth.authorizedDelete
-import com.nukinderuru.auth.authorizedGet
-import com.nukinderuru.auth.authorizedPatch
-import com.nukinderuru.auth.authorizedPost
+import com.nukinderuru.auth.requireAuthorization
 import com.nukinderuru.common.constants.ValidationConstants
 import com.nukinderuru.domain.service.ClientService
 import io.ktor.http.HttpHeaders
@@ -14,6 +11,10 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.patch
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 import java.util.UUID
@@ -28,7 +29,7 @@ fun Route.clientRoutes() {
          * @response 400 application/json ErrorResponse Invalid query parameter values.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedGet {
+        get {
             val rawLimit = call.request.queryParameters[ValidationConstants.QUERY_PARAMETER_LIMIT]
             val rawOffset = call.request.queryParameters[ValidationConstants.QUERY_PARAMETER_OFFSET]
             val limit = rawLimit?.toIntOrNull()
@@ -41,7 +42,7 @@ fun Route.clientRoutes() {
                 ) else null
             val clients = clientService.getAllClients(limit, offset)
             call.respond(clients)
-        }
+        }.requireAuthorization()
 
         /**
          * @tag Clients
@@ -50,12 +51,12 @@ fun Route.clientRoutes() {
          * @response 201 application/json CreatedClientResponse Created client.
          * @response 400 application/json ErrorResponse Invalid request body.
          */
-        authorizedPost {
+        post {
             val request = call.receive<CreateClientRequest>()
             val createdClient = clientService.createClient(request)
             call.response.header(HttpHeaders.Location, "/api/v1/clients/${createdClient.id}")
             call.respond(HttpStatusCode.Created, createdClient)
-        }
+        }.requireAuthorization()
 
         /**
          * @tag Clients
@@ -63,7 +64,7 @@ fun Route.clientRoutes() {
          * @response 400 application/json ErrorResponse Missing or invalid query parameters.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedGet("/search") {
+        get("/search") {
             val firstName = call.request.queryParameters[ValidationConstants.QUERY_PARAMETER_FIRST_NAME]
                 ?: throw IllegalArgumentException(
                     ValidationConstants.queryParameterRequired(ValidationConstants.QUERY_PARAMETER_FIRST_NAME),
@@ -74,7 +75,7 @@ fun Route.clientRoutes() {
                 )
             val clients = clientService.getClientsByName(firstName, lastName)
             call.respond(clients)
-        }
+        }.requireAuthorization()
 
         /**
          * @tag Clients
@@ -83,12 +84,12 @@ fun Route.clientRoutes() {
          * @response 404 application/json ErrorResponse Client not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedGet("/{id}") {
+        get("/{id}") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             val client = clientService.getClientById(id)
             call.respond(client)
-        }
+        }.requireAuthorization()
 
         /**
          * @tag Clients
@@ -97,12 +98,12 @@ fun Route.clientRoutes() {
          * @response 404 application/json ErrorResponse Client not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedDelete("/{id}") {
+        delete("/{id}") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             clientService.deleteClient(id)
             call.respond(HttpStatusCode.NoContent)
-        }
+        }.requireAuthorization()
 
         /**
          * @tag Clients
@@ -112,13 +113,13 @@ fun Route.clientRoutes() {
          * @response 404 application/json ErrorResponse Client not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedPatch("/{id}/address") {
+        patch("/{id}/address") {
             val id = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             val request = call.receive<AddressRequest>()
             val updatedClient = clientService.changeClientAddress(id, request)
             call.respond(updatedClient)
-        }
+        }.requireAuthorization()
     }
 }
 

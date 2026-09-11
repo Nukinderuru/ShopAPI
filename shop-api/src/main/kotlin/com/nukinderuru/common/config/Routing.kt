@@ -15,10 +15,13 @@ import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.RoutingRoot
 import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.OpenApiDocSource
+import io.ktor.server.routing.openapi.registerBearerAuthSecurityScheme
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
+    registerBearerAuthSecurityScheme(name = "bearerAuth", bearerFormat = "JWT")
+
     routing {
         swaggerUI(path = "swagger") {
             info = OpenApiInfo("Shop API", "1.0.0")

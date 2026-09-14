@@ -5,13 +5,8 @@ import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.util.AttributeKey
 import io.ktor.server.request.header
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.RoutingHandler
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
-import io.ktor.server.routing.route
+import io.ktor.server.routing.openapi.describe
+import io.ktor.utils.io.ExperimentalKtorApi
 import org.koin.ktor.ext.getKoin
 
 class UnauthorizedException(message: String = "Unauthorized") : RuntimeException(message)
@@ -44,27 +39,14 @@ private val AuthorizedRoutePlugin = createRouteScopedPlugin("AuthorizedRoutePlug
     }
 }
 
-fun Route.authorized(build: Route.() -> Unit): Route = route("") {
+fun Route.requireAuthorization(): Route = apply {
     install(AuthorizedRoutePlugin)
-    build()
+    markBearerAuthRequired()
 }
 
-fun Route.authorizedPost(path: String = "", body: RoutingHandler): Route = post(path, body).apply {
-    install(AuthorizedRoutePlugin)
-}
-
-fun Route.authorizedGet(path: String = "", body: RoutingHandler): Route = get(path, body).apply {
-    install(AuthorizedRoutePlugin)
-}
-
-fun Route.authorizedPatch(path: String, body: RoutingHandler): Route = patch(path, body).apply {
-    install(AuthorizedRoutePlugin)
-}
-
-fun Route.authorizedPut(path: String, body: RoutingHandler): Route = put(path, body).apply {
-    install(AuthorizedRoutePlugin)
-}
-
-fun Route.authorizedDelete(path: String, body: RoutingHandler): Route = delete(path, body).apply {
-    install(AuthorizedRoutePlugin)
+@OptIn(ExperimentalKtorApi::class)
+private fun Route.markBearerAuthRequired(): Route = describe {
+    security {
+        requirement("bearerAuth")
+    }
 }

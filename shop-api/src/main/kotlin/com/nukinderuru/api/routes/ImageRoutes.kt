@@ -1,8 +1,6 @@
 package com.nukinderuru.api.routes
 
-import com.nukinderuru.auth.authorizedDelete
-import com.nukinderuru.auth.authorizedPost
-import com.nukinderuru.auth.authorizedPut
+import com.nukinderuru.auth.requireAuthorization
 import com.nukinderuru.common.constants.ValidationConstants
 import com.nukinderuru.domain.service.ImageService
 import io.ktor.http.ContentDisposition
@@ -14,7 +12,10 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 import java.util.UUID
@@ -45,13 +46,13 @@ fun Route.imageRoutes() {
          * @response 404 application/json ErrorResponse Image not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedPut("/{id}") {
+        put("/{id}") {
             val imageId = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseImageUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             val imageBytes = call.receive<ByteArray>()
             imageService.replaceImage(imageId, imageBytes)
             call.respond(HttpStatusCode.NoContent)
-        }
+        }.requireAuthorization()
 
         /**
          * @tag Images
@@ -60,12 +61,12 @@ fun Route.imageRoutes() {
          * @response 404 application/json ErrorResponse Image not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedDelete("/{id}") {
+        delete("/{id}") {
             val imageId = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseImageUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             imageService.deleteImage(imageId)
             call.respond(HttpStatusCode.NoContent)
-        }
+        }.requireAuthorization()
     }
 
     route("/products") {
@@ -91,14 +92,14 @@ fun Route.imageRoutes() {
          * @response 404 application/json ErrorResponse Product not found.
          * @response 500 application/json ErrorResponse Unexpected server error.
          */
-        authorizedPost("/{id}/image") {
+        post("/{id}/image") {
             val productId = call.parameters[ValidationConstants.PATH_PARAMETER_ID]?.let(::parseImageUuid)
                 ?: throw IllegalArgumentException(ValidationConstants.pathParameterRequired(ValidationConstants.PATH_PARAMETER_ID))
             val imageBytes = call.receive<ByteArray>()
             val createdImage = imageService.addImage(productId, imageBytes)
             call.response.header(HttpHeaders.Location, "/api/v1/images/${createdImage.id}")
             call.respond(HttpStatusCode.Created, createdImage)
-        }
+        }.requireAuthorization()
     }
 }
 

@@ -117,6 +117,23 @@ services:
     expose:
       - 8082
 
+  product-event-generator:
+    build:
+      context: .
+      dockerfile: product-event-generator/Dockerfile
+    container_name: product-event-generator
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_started
+    environment:
+      DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/shop
+      DATABASE_USERNAME: shop_user
+      DATABASE_PASSWORD: shoppass
+      DATABASE_MAXIMUM_POOL_SIZE: 5
+      PRODUCT_EVENT_INTERVAL_SECONDS: 5
+
   nginx:
     image: docker.io/library/nginx:1.29-alpine
     container_name: shop-nginx
@@ -150,5 +167,12 @@ services:
 
 volumes:
   postgres-data:
+    name: shopapi_postgres-data
   auth-postgres-data:
+    name: shopapi_auth-postgres-data
   pgadmin-data:
+    name: shopapi_pgadmin-data
+
+networks:
+  default:
+    name: shop-network

@@ -5,6 +5,7 @@ WORKDIR /app
 COPY settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY auth-contract auth-contract
 COPY auth-service auth-service
+COPY product-event-generator product-event-generator
 COPY shop-api shop-api
 
 RUN gradle :auth-service:installDist -x test --no-daemon

@@ -6,6 +6,7 @@ COPY settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY auth-contract auth-contract
 COPY auth-service auth-service
 COPY shop-api shop-api
+COPY product-event-contract product-event-contract
 COPY product-event-generator product-event-generator
 
 RUN gradle :product-event-generator:installDist -x test --no-daemon

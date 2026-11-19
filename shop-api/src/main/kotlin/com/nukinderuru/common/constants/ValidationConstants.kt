@@ -6,6 +6,7 @@ object ValidationConstants {
     const val BAD_REQUEST = "Bad request"
     const val NOT_FOUND = "Not found"
     const val INTERNAL_SERVER_ERROR = "Internal server error"
+    const val CONFLICT = "Conflict"
 
     const val VALIDATION_FAILED = "Validation failed"
     const val INVALID_REQUEST = "Invalid request"
@@ -30,6 +31,8 @@ object ValidationConstants {
     const val FIELD_PRODUCT_CATEGORY = "category"
     const val FIELD_PRODUCT_PRICE = "price"
     const val FIELD_AVAILABLE_STOCK = "availableStock"
+    const val FIELD_OLD_PRODUCT_PRICE = "oldPrice"
+    const val FIELD_OLD_AVAILABLE_STOCK = "oldAvailableStock"
     const val FIELD_LAST_UPDATE_DATE = "lastUpdateDate"
     const val FIELD_DECREASE_BY = "decreaseBy"
     const val FIELD_SUPPLIER_NAME = "name"
@@ -96,4 +99,8 @@ object ValidationConstants {
 
     fun productDecreaseExceedsStock(availableStock: Int, decreaseBy: Int): String =
         "Cannot decrease product stock by $decreaseBy when only $availableStock items are available"
+
+    fun productChangeMustModifyPriceOrStock(): String =
+        "Product change must modify price or available stock"
+
 }

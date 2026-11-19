@@ -1,5 +1,6 @@
 package com.nukinderuru.generator
 
+import com.nukinderuru.events.ProductChangeEvent
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
@@ -46,9 +47,14 @@ class ProductEventRepository(
     private fun generateNewPrice(currentPrice: BigDecimal): BigDecimal {
         val percentDelta = random.nextNonZeroInt(MIN_PRICE_DELTA_PERCENT, MAX_PRICE_DELTA_PERCENT)
         val multiplier = BigDecimal.valueOf(100L + percentDelta).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
-        return currentPrice.multiply(multiplier)
+        val generatedPrice = currentPrice.multiply(multiplier)
             .setScale(2, RoundingMode.HALF_UP)
             .max(MIN_PRICE)
+        return if (generatedPrice.compareTo(currentPrice) == 0) {
+            currentPrice.add(MIN_PRICE_STEP)
+        } else {
+            generatedPrice
+        }
     }
 
     private fun generateNewAvailableStock(currentStock: Int): Int {
@@ -71,6 +77,7 @@ class ProductEventRepository(
 
     private companion object {
         val MIN_PRICE = BigDecimal("0.01")
+        val MIN_PRICE_STEP = BigDecimal("0.01")
         const val MIN_PRICE_DELTA_PERCENT = -20
         const val MAX_PRICE_DELTA_PERCENT = 20
         const val MIN_STOCK_DELTA = -10

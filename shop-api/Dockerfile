@@ -5,6 +5,7 @@ WORKDIR /app
 COPY settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY auth-contract auth-contract
 COPY auth-service auth-service
+COPY product-event-contract product-event-contract
 COPY product-event-generator product-event-generator
 COPY shop-api shop-api
 
@@ -13,6 +14,11 @@ RUN gradle :shop-api:installDist -x test --no-daemon
 FROM docker.io/library/eclipse-temurin:21-jre
 
 WORKDIR /app
+
+# Install curl for Docker healthcheck
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/shop-api/build/install/shop-api /app/
 

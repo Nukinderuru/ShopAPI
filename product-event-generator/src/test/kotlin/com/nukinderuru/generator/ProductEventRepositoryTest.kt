@@ -81,6 +81,18 @@ class ProductEventRepositoryTest {
         assertNotEquals(event?.oldPrice, event?.newPrice)
     }
 
+    @Test
+    fun `generateRandomProductChange changes minimum price despite rounding`() = runTest {
+        val database = createDatabase()
+        insertProduct(database, price = BigDecimal("0.01"))
+
+        repeat(20) { seed ->
+            val event = ProductEventRepository(database, Random(seed)).generateRandomProductChange()
+
+            assertNotEquals(BigDecimal("0.01"), event?.newPrice)
+        }
+    }
+
     private fun createDatabase(): Database {
         val database = Database.connect(
             url = "jdbc:h2:mem:${UUID.randomUUID()};MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",

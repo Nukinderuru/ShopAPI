@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JacksonException
 import com.nukinderuru.api.dtos.response.ErrorResponse
 import com.nukinderuru.auth.UnauthorizedException
 import com.nukinderuru.common.constants.ValidationConstants
+import com.nukinderuru.domain.exception.ConflictException
 import com.nukinderuru.domain.exception.ValidationException
 import com.nukinderuru.domain.exception.NotFoundException
 import io.ktor.http.HttpStatusCode
@@ -13,6 +14,7 @@ import io.grpc.StatusRuntimeException
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.ContentTransformationException
 import io.ktor.server.request.httpMethod
@@ -54,6 +56,17 @@ fun Application.configureStatusPages() {
                 )
             )
         }
+        exception<BadRequestException> { call, cause ->
+            logger.warn("Bad request on {} {}: {}", call.request.httpMethod.value, call.request.uri, cause.message)
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(
+                    ValidationConstants.BAD_REQUEST,
+                    HttpStatusCode.BadRequest.value,
+                    ValidationConstants.INVALID_REQUEST_BODY,
+                ),
+            )
+        }
         exception<IllegalArgumentException> { call, cause ->
             logger.warn("Illegal argument on {} {}: {}", call.request.httpMethod.value, call.request.uri, cause.message)
             call.respond(
@@ -74,8 +87,24 @@ fun Application.configureStatusPages() {
                 )
             )
         }
+        exception<ConflictException> { call, cause ->
+            logger.info("Conflict on {} {}: {}", call.request.httpMethod.value, call.request.uri, cause.message)
+            call.respond(
+                HttpStatusCode.Conflict,
+                ErrorResponse(
+                    ValidationConstants.CONFLICT,
+                    HttpStatusCode.Conflict.value,
+                    cause.message ?: ValidationConstants.CONFLICT,
+                ),
+            )
+        }
         exception<UnauthorizedException> { call, cause ->
-            logger.warn("Unauthorized request on {} {}: {}", call.request.httpMethod.value, call.request.uri, cause.message)
+            logger.warn(
+                "Unauthorized request on {} {}: {}",
+                call.request.httpMethod.value,
+                call.request.uri,
+                cause.message
+            )
             call.respond(
                 HttpStatusCode.Unauthorized, ErrorResponse(
                     "Unauthorized",

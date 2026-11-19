@@ -12,28 +12,42 @@ import com.nukinderuru.data.repository.ExposedSupplierRepository
 import com.nukinderuru.data.repository.ProductRepository
 import com.nukinderuru.data.repository.SupplierRepository
 import com.nukinderuru.data.repository.ImageRepository
+import com.nukinderuru.domain.event.ProductUpdateBroadcaster
 import com.nukinderuru.domain.service.ClientService
 import com.nukinderuru.domain.service.ImageService
+import com.nukinderuru.domain.service.ProductEventService
 import com.nukinderuru.domain.service.ProductService
 import com.nukinderuru.domain.service.SupplierService
+import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import org.jetbrains.exposed.sql.Database
 import org.koin.ktor.plugin.Koin
 import org.koin.dsl.module
+import org.koin.dsl.onClose
 
 fun Application.configureDependencyInjection() {
     install(Koin) {
         modules(
             module {
                 single { DatabaseConfig(environment.config) }
-                single { get<DatabaseConfig>().connect() }
+                single<HikariDataSource> {
+                    get<DatabaseConfig>().createDataSource()
+                } onClose { dataSource ->
+                    dataSource?.close()
+                }
+                single<Database>(createdAtStart = true) {
+                    get<DatabaseConfig>().connect(get<HikariDataSource>())
+                }
                 single<ManagedChannel> {
                     ManagedChannelBuilder.forAddress(
                         environment.config.property("auth.host").getString(),
                         environment.config.property("auth.port").getString().toInt()
                     ).usePlaintext().build()
+                } onClose { channel ->
+                    channel?.shutdown()
                 }
                 single { AuthServiceGrpcKt.AuthServiceCoroutineStub(get<ManagedChannel>()) }
                 single<AuthClient> { GrpcAuthClient(get()) }
@@ -44,6 +58,8 @@ fun Application.configureDependencyInjection() {
                 single { ClientService(get()) }
                 single { ImageService(get()) }
                 single { ProductService(get()) }
+                single { ProductUpdateBroadcaster() }
+                single { ProductEventService(get(), get()) }
                 single { SupplierService(get()) }
             }
         )

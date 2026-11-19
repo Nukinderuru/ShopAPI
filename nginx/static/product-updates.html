@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Live Product Updates</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            background: #07111f;
+            color: #dbeafe;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                    radial-gradient(circle at 15% 10%, rgba(14, 165, 233, 0.2), transparent 34rem),
+                    #07111f;
+        }
+
+        main {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 48px 0;
+        }
+
+        header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        h1, h2, p {
+            margin-top: 0;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+            font-size: clamp(2rem, 6vw, 4.5rem);
+            letter-spacing: -0.08em;
+        }
+
+        .streams {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        section {
+            min-height: 430px;
+            padding: 20px;
+            border: 1px solid #1e3a5f;
+            border-radius: 10px;
+            background: rgba(8, 24, 42, 0.88);
+            box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #78350f;
+            color: #fde68a;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .status.connected {
+            background: #064e3b;
+            color: #a7f3d0;
+        }
+
+        ol {
+            max-height: 330px;
+            overflow: auto;
+            padding-left: 28px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #172f4d;
+            overflow-wrap: anywhere;
+        }
+
+        a {
+            color: #7dd3fc;
+        }
+
+        @media (max-width: 760px) {
+            header {
+                display: block;
+            }
+
+            .streams {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div>
+            <h1>Product pulse</h1>
+            <p>One gateway update, observed through two server-driven protocols.</p>
+        </div>
+        <a href="/">Back to front door</a>
+    </header>
+
+    <div class="streams">
+        <section>
+            <h2>SSE <span id="sse-status" class="status">connecting</span></h2>
+            <ol id="sse-events"></ol>
+        </section>
+        <section>
+            <h2>WebSocket <span id="ws-status" class="status">connecting</span></h2>
+            <ol id="ws-events"></ol>
+        </section>
+    </div>
+</main>
+
+<script src="/product-updates.js"></script>
+</body>
+</html>

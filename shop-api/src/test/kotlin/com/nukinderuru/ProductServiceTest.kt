@@ -5,10 +5,12 @@ import com.nukinderuru.api.dtos.request.DecreaseProductStockRequest
 import com.nukinderuru.api.dtos.response.CreatedProductResponse
 import com.nukinderuru.api.dtos.response.ProductResponse
 import com.nukinderuru.common.constants.ValidationConstants
+import com.nukinderuru.data.repository.ProductChangeResult
 import com.nukinderuru.data.repository.ProductRepository
 import com.nukinderuru.domain.exception.ValidationException
 import com.nukinderuru.domain.exception.NotFoundException
 import com.nukinderuru.domain.service.ProductService
+import com.nukinderuru.events.ProductChangeEvent
 import kotlinx.coroutines.test.runTest
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -43,7 +45,10 @@ class ProductServiceTest {
             service.createProduct(validRequest().copy(price = BigDecimal.ZERO))
         }
 
-        assertEquals(ValidationConstants.fieldMustBeGreaterThanZero(ValidationConstants.FIELD_PRODUCT_PRICE), exception.message)
+        assertEquals(
+            ValidationConstants.fieldMustBeGreaterThanZero(ValidationConstants.FIELD_PRODUCT_PRICE),
+            exception.message
+        )
     }
 
     @Test
@@ -52,7 +57,10 @@ class ProductServiceTest {
             service.createProduct(validRequest().copy(availableStock = -1))
         }
 
-        assertEquals(ValidationConstants.fieldMustBeGreaterThanOrEqualToZero(ValidationConstants.FIELD_AVAILABLE_STOCK), exception.message)
+        assertEquals(
+            ValidationConstants.fieldMustBeGreaterThanOrEqualToZero(ValidationConstants.FIELD_AVAILABLE_STOCK),
+            exception.message
+        )
     }
 
     @Test
@@ -79,7 +87,10 @@ class ProductServiceTest {
             service.decreaseProductStock(FakeProductRepository.createdProductId, DecreaseProductStockRequest(0))
         }
 
-        assertEquals(ValidationConstants.fieldMustBeGreaterThanZero(ValidationConstants.FIELD_DECREASE_BY), exception.message)
+        assertEquals(
+            ValidationConstants.fieldMustBeGreaterThanZero(ValidationConstants.FIELD_DECREASE_BY),
+            exception.message
+        )
     }
 
     @Test
@@ -124,6 +135,9 @@ private class FakeProductRepository : ProductRepository {
     override suspend fun findById(id: UUID): ProductResponse? = existingProduct.takeIf { it.id == id }
 
     override suspend fun findAllAvailable(): List<ProductResponse> = listOf(existingProduct)
+
+    override suspend fun applyProductChange(event: ProductChangeEvent): ProductChangeResult =
+        ProductChangeResult.NotFound
 
     override suspend fun deleteById(id: UUID): Boolean = id == createdProductId
 

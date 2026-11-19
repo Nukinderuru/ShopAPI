@@ -24,8 +24,21 @@ class DatabaseConfig(private val config: ApplicationConfig) {
             },
         )
 
-        runMigrations(hikariDataSource)
-        return Database.connect(hikariDataSource)
+        return try {
+            val shouldRunMigrations = config
+                .property("database.runMigrations")
+                .getString()
+                .toBooleanStrict()
+
+            if (shouldRunMigrations) {
+                runMigrations(hikariDataSource)
+            }
+
+            Database.connect(hikariDataSource)
+        } catch (exception: Exception) {
+            hikariDataSource.close()
+            throw exception
+        }
     }
 
     private fun runMigrations(dataSource: HikariDataSource) {

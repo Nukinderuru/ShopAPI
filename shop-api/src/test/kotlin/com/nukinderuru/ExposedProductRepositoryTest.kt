@@ -11,12 +11,15 @@ import com.nukinderuru.data.db.dao.ProductTable
 import com.nukinderuru.data.db.dao.SupplierEntity
 import com.nukinderuru.data.db.dao.SupplierTable
 import com.nukinderuru.data.repository.ExposedProductRepository
+import com.nukinderuru.data.repository.ProductChangeResult
 import com.nukinderuru.domain.exception.ValidationException
+import com.nukinderuru.events.ProductChangeEvent
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.Test
@@ -123,6 +126,56 @@ class ExposedProductRepositoryTest {
     }
 
     @Test
+    fun `applyProductChange updates matching product values`() = runTest {
+        val repository = createRepository()
+        val id = repository.create(productRequest(price = BigDecimal("99.99"), availableStock = 5))
+
+        val result = repository.applyProductChange(productChange(id))
+
+        val applied = result as ProductChangeResult.Applied
+        assertEquals(BigDecimal("109.99"), applied.product.price)
+        assertEquals(3, applied.product.availableStock)
+        assertEquals(LocalDate.now(), applied.product.lastUpdateDate)
+    }
+
+    @Test
+    fun `applyProductChange returns not found for unknown product`() = runTest {
+        val repository = createRepository()
+
+        val result = repository.applyProductChange(productChange(UUID.randomUUID()))
+
+        assertEquals(ProductChangeResult.NotFound, result)
+    }
+
+    @Test
+    fun `applyProductChange rejects stale values without modifying product`() = runTest {
+        val repository = createRepository()
+        val id = repository.create(productRequest(price = BigDecimal("99.99"), availableStock = 5))
+
+        val result = repository.applyProductChange(
+            productChange(id).copy(oldPrice = BigDecimal("98.99"))
+        )
+
+        assertEquals(ProductChangeResult.Stale, result)
+        assertEquals(BigDecimal("99.99"), repository.findById(id)?.price)
+        assertEquals(5, repository.findById(id)?.availableStock)
+    }
+
+    @Test
+    fun `applyProductChange rejects duplicate event`() = runTest {
+        val repository = createRepository()
+        val id = repository.create(productRequest(price = BigDecimal("99.99"), availableStock = 5))
+        val event = productChange(id)
+
+        repository.applyProductChange(event)
+        val duplicateResult = repository.applyProductChange(event)
+
+        assertEquals(ProductChangeResult.Stale, duplicateResult)
+        assertEquals(BigDecimal("109.99"), repository.findById(id)?.price)
+        assertEquals(3, repository.findById(id)?.availableStock)
+    }
+
+    @Test
     fun `deleteById removes product`() = runTest {
         val database = createDatabase()
         val repository = ExposedProductRepository(database)
@@ -173,5 +226,14 @@ class ExposedProductRepositoryTest {
         lastUpdateDate = lastUpdateDate,
         supplierId = supplierId,
         imageId = imageId,
+    )
+
+    private fun productChange(id: UUID) = ProductChangeEvent(
+        productId = id,
+        oldPrice = BigDecimal("99.99"),
+        newPrice = BigDecimal("109.99"),
+        oldAvailableStock = 5,
+        newAvailableStock = 3,
+        occurredAt = Instant.parse("2026-10-19T12:00:00Z")
     )
 }

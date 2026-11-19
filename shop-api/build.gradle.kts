@@ -36,6 +36,7 @@ kotlin {
 
 dependencies {
     implementation(project(":auth-contract"))
+    implementation(project(":product-event-contract"))
 
     // Ktor
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
@@ -49,6 +50,8 @@ dependencies {
     implementation("io.ktor:ktor-server-openapi-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-swagger-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-routing-openapi-jvm:$ktorVersion")
+    implementation ("io.ktor:ktor-server-sse-jvm:${ktorVersion}")
+    implementation("io.ktor:ktor-server-websockets-jvm:${ktorVersion}")
 
     // Koin
     implementation("io.insert-koin:koin-ktor:$koinVersion")
@@ -79,6 +82,7 @@ dependencies {
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")
+    testImplementation("io.ktor:ktor-client-websockets-jvm:${ktorVersion}")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("com.h2database:h2:2.2.224")
 

@@ -3,6 +3,7 @@ package com.nukinderuru.common.config
 import com.nukinderuru.api.routes.clientRoutes
 import com.nukinderuru.api.routes.authRoutes
 import com.nukinderuru.api.routes.imageRoutes
+import com.nukinderuru.api.routes.productEventRoutes
 import com.nukinderuru.api.routes.productRoutes
 import com.nukinderuru.api.routes.supplierRoutes
 import io.ktor.http.ContentType
@@ -20,6 +21,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
+    configureStreaming()
     registerBearerAuthSecurityScheme(name = "bearerAuth", bearerFormat = "JWT")
 
     routing {
@@ -46,6 +48,7 @@ fun Application.configureRouting() {
             clientRoutes()
             imageRoutes()
             productRoutes()
+            productEventRoutes()
             supplierRoutes()
         }
     }

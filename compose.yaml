@@ -1,13 +1,12 @@
 services:
   postgres:
     image: docker.io/library/postgres:16-alpine
-    container_name: shop-postgres
     environment:
       POSTGRES_DB: shop
       POSTGRES_USER: shop_user
       POSTGRES_PASSWORD: shoppass
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -19,13 +18,12 @@ services:
 
   auth-postgres:
     image: docker.io/library/postgres:16-alpine
-    container_name: auth-postgres
     environment:
       POSTGRES_DB: auth
       POSTGRES_USER: auth_user
       POSTGRES_PASSWORD: authpass
     ports:
-      - "5433:5432"
+      - "5436:5432"
     volumes:
       - auth-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -39,7 +37,6 @@ services:
     build:
       context: .
       dockerfile: auth-service/Dockerfile
-    container_name: auth-service
     depends_on:
       auth-postgres:
         condition: service_healthy
@@ -58,7 +55,6 @@ services:
     build:
       context: .
       dockerfile: shop-api/Dockerfile
-    container_name: shop-app
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,6 +66,7 @@ services:
       DATABASE_USERNAME: shop_user
       DATABASE_PASSWORD: shoppass
       DATABASE_MAXIMUM_POOL_SIZE: 10
+      RUN_DATABASE_MIGRATIONS: "true"
       AUTH_GRPC_HOST: auth-service
       AUTH_GRPC_PORT: 9090
     expose:
@@ -79,7 +76,6 @@ services:
     build:
       context: .
       dockerfile: shop-api/Dockerfile
-    container_name: shop-app-read-1
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +87,7 @@ services:
       DATABASE_USERNAME: shop_user
       DATABASE_PASSWORD: shoppass
       DATABASE_MAXIMUM_POOL_SIZE: 10
+      RUN_DATABASE_MIGRATIONS: "false"
       AUTH_GRPC_HOST: auth-service
       AUTH_GRPC_PORT: 9090
     expose:
@@ -100,7 +97,6 @@ services:
     build:
       context: .
       dockerfile: shop-api/Dockerfile
-    container_name: shop-app-read-2
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,6 +108,7 @@ services:
       DATABASE_USERNAME: shop_user
       DATABASE_PASSWORD: shoppass
       DATABASE_MAXIMUM_POOL_SIZE: 10
+      RUN_DATABASE_MIGRATIONS: "false"
       AUTH_GRPC_HOST: auth-service
       AUTH_GRPC_PORT: 9090
     expose:
@@ -121,7 +118,6 @@ services:
     build:
       context: .
       dockerfile: product-event-generator/Dockerfile
-    container_name: product-event-generator
     depends_on:
       postgres:
         condition: service_healthy
@@ -133,10 +129,11 @@ services:
       DATABASE_PASSWORD: shoppass
       DATABASE_MAXIMUM_POOL_SIZE: 5
       PRODUCT_EVENT_INTERVAL_SECONDS: 5
+      PRODUCT_EVENT_GATEWAY_URL: http://app:8080/api/v1/internal/product-events
+      PRODUCT_EVENT_HTTP_TIMEOUT_SECONDS: 5
 
   nginx:
     image: docker.io/library/nginx:1.29-alpine
-    container_name: shop-nginx
     depends_on:
       - app
       - app-read-1
@@ -144,8 +141,8 @@ services:
       - auth-service
       - pgadmin
     ports:
-      - "8081:80"
-      - "8443:443"
+      - "8082:80"
+      - "8444:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/certs:/etc/nginx/certs:ro
@@ -153,7 +150,6 @@ services:
 
   pgadmin:
     image: docker.io/dpage/pgadmin4:9.14
-    container_name: shop-pgadmin
     depends_on:
       - postgres
     environment:
@@ -167,12 +163,5 @@ services:
 
 volumes:
   postgres-data:
-    name: shopapi_postgres-data
   auth-postgres-data:
-    name: shopapi_auth-postgres-data
   pgadmin-data:
-    name: shopapi_pgadmin-data
-
-networks:
-  default:
-    name: shop-network

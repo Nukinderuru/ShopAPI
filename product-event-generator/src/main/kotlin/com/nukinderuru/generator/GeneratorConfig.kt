@@ -10,7 +10,9 @@ data class GeneratorConfig(
     val username: String,
     val password: String,
     val maximumPoolSize: Int,
-    val interval: Duration
+    val interval: Duration,
+    val gatewayUrl: String,
+    val httpTimeout: Duration
 ) {
     fun createDataSource(): HikariDataSource = HikariDataSource(
             HikariConfig().apply {
@@ -29,7 +31,10 @@ data class GeneratorConfig(
             username = environment["DATABASE_USERNAME"] ?: "shop_user",
             password = environment["DATABASE_PASSWORD"] ?: "shoppass",
             maximumPoolSize = environment["DATABASE_MAXIMUM_POOL_SIZE"]?.toIntOrNull() ?: 5,
-            interval = (environment["PRODUCT_EVENT_INTERVAL_SECONDS"]?.toLongOrNull() ?: 5L).seconds
+            interval = (environment["PRODUCT_EVENT_INTERVAL_SECONDS"]?.toLongOrNull() ?: 5L).seconds,
+            gatewayUrl = environment["PRODUCT_EVENT_GATEWAY_URL"]
+                ?: "http://localhost:8080/api/v1/internal/product-events",
+            httpTimeout = (environment["PRODUCT_EVENT_HTTP_TIMEOUT_SECONDS"]?.toLongOrNull() ?: 5L).seconds
         )
     }
 }

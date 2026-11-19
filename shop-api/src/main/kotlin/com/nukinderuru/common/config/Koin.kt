@@ -12,8 +12,10 @@ import com.nukinderuru.data.repository.ExposedSupplierRepository
 import com.nukinderuru.data.repository.ProductRepository
 import com.nukinderuru.data.repository.SupplierRepository
 import com.nukinderuru.data.repository.ImageRepository
+import com.nukinderuru.domain.event.ProductUpdateBroadcaster
 import com.nukinderuru.domain.service.ClientService
 import com.nukinderuru.domain.service.ImageService
+import com.nukinderuru.domain.service.ProductEventService
 import com.nukinderuru.domain.service.ProductService
 import com.nukinderuru.domain.service.SupplierService
 import io.ktor.server.application.Application
@@ -28,7 +30,9 @@ fun Application.configureDependencyInjection() {
         modules(
             module {
                 single { DatabaseConfig(environment.config) }
-                single { get<DatabaseConfig>().connect() }
+                single(createdAtStart = true) {
+                    get<DatabaseConfig>().connect()
+                }
                 single<ManagedChannel> {
                     ManagedChannelBuilder.forAddress(
                         environment.config.property("auth.host").getString(),
@@ -44,6 +48,8 @@ fun Application.configureDependencyInjection() {
                 single { ClientService(get()) }
                 single { ImageService(get()) }
                 single { ProductService(get()) }
+                single { ProductUpdateBroadcaster() }
+                single { ProductEventService(get(), get()) }
                 single { SupplierService(get()) }
             }
         )

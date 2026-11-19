@@ -71,6 +71,12 @@ services:
       AUTH_GRPC_PORT: 9090
     expose:
       - 8080
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "--silent", "--show-error", "http://localhost:8080/health/ready" ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
 
   app-read-1:
     build:
@@ -81,6 +87,8 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
+      app:
+        condition: service_healthy
     environment:
       PORT: 8081
       DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/shop?options=-c%20default_transaction_read_only%3Don
@@ -102,6 +110,8 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
+      app:
+        condition: service_healthy
     environment:
       PORT: 8082
       DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/shop?options=-c%20default_transaction_read_only%3Don
@@ -122,7 +132,7 @@ services:
       postgres:
         condition: service_healthy
       app:
-        condition: service_started
+        condition: service_healthy
     environment:
       DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/shop
       DATABASE_USERNAME: shop_user
@@ -135,11 +145,16 @@ services:
   nginx:
     image: docker.io/library/nginx:1.29-alpine
     depends_on:
-      - app
-      - app-read-1
-      - app-read-2
-      - auth-service
-      - pgadmin
+      app:
+        condition: service_healthy
+      app-read-1:
+        condition: service_started
+      app-read-2:
+        condition: service_started
+      auth-service:
+        condition: service_started
+      pgadmin:
+        condition: service_started
     ports:
       - "8082:80"
       - "8444:443"

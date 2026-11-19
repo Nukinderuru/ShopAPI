@@ -18,20 +18,28 @@ import com.nukinderuru.domain.service.ImageService
 import com.nukinderuru.domain.service.ProductEventService
 import com.nukinderuru.domain.service.ProductService
 import com.nukinderuru.domain.service.SupplierService
+import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import org.jetbrains.exposed.sql.Database
 import org.koin.ktor.plugin.Koin
 import org.koin.dsl.module
+import org.koin.dsl.onClose
 
 fun Application.configureDependencyInjection() {
     install(Koin) {
         modules(
             module {
                 single { DatabaseConfig(environment.config) }
-                single(createdAtStart = true) {
-                    get<DatabaseConfig>().connect()
+                single<HikariDataSource> {
+                    get<DatabaseConfig>().createDataSource()
+                } onClose { dataSource ->
+                    dataSource?.close()
+                }
+                single<Database>(createdAtStart = true) {
+                    get<DatabaseConfig>().connect(get<HikariDataSource>())
                 }
                 single<ManagedChannel> {
                     ManagedChannelBuilder.forAddress(

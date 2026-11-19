@@ -12,8 +12,8 @@ import liquibase.resource.ClassLoaderResourceAccessor
 import org.jetbrains.exposed.sql.Database
 
 class DatabaseConfig(private val config: ApplicationConfig) {
-    fun connect(): Database {
-        val hikariDataSource = HikariDataSource(
+    fun createDataSource(): HikariDataSource =
+        HikariDataSource(
             HikariConfig().apply {
                 driverClassName = config.property("database.driverClassName").getString()
                 jdbcUrl = config.property("database.jdbcUrl").getString()
@@ -21,9 +21,10 @@ class DatabaseConfig(private val config: ApplicationConfig) {
                 password = config.property("database.password").getString()
                 maximumPoolSize = config.property("database.maximumPoolSize").getString().toInt()
                 validate()
-            },
+            }
         )
 
+    fun connect(dataSource: HikariDataSource): Database {
         return try {
             val shouldRunMigrations = config
                 .property("database.runMigrations")
@@ -31,12 +32,12 @@ class DatabaseConfig(private val config: ApplicationConfig) {
                 .toBooleanStrict()
 
             if (shouldRunMigrations) {
-                runMigrations(hikariDataSource)
+                runMigrations(dataSource)
             }
 
-            Database.connect(hikariDataSource)
+            Database.connect(dataSource)
         } catch (exception: Exception) {
-            hikariDataSource.close()
+            dataSource.close()
             throw exception
         }
     }

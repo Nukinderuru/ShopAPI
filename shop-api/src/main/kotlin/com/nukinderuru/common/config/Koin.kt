@@ -46,6 +46,8 @@ fun Application.configureDependencyInjection() {
                         environment.config.property("auth.host").getString(),
                         environment.config.property("auth.port").getString().toInt()
                     ).usePlaintext().build()
+                } onClose { channel ->
+                    channel?.shutdown()
                 }
                 single { AuthServiceGrpcKt.AuthServiceCoroutineStub(get<ManagedChannel>()) }
                 single<AuthClient> { GrpcAuthClient(get()) }

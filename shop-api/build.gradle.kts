@@ -17,6 +17,7 @@ val kotlinxSerializationVersion = project.property("kotlinxSerializationVersion"
 val logbackVersion = project.property("logbackVersion") as String
 val testcontainersVersion = project.property("testcontainersVersion") as String
 val grpcVersion = project.property("grpcVersion") as String
+val amqpClientVersion = project.property("amqpClientVersion") as String
 
 application {
     mainClass.set("io.ktor.server.netty.EngineMain")
@@ -75,6 +76,9 @@ dependencies {
 
     // gRPC
     implementation("io.grpc:grpc-netty-shaded:$grpcVersion")
+
+    // RabbitMQ
+    implementation("com.rabbitmq:amqp-client:${amqpClientVersion}")
 
     // Logging
     implementation("ch.qos.logback:logback-classic:$logbackVersion")

@@ -11,4 +11,11 @@ kotlin {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinxSerializationVersion")
+
+    testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

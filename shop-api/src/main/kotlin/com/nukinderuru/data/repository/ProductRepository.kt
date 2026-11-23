@@ -22,6 +22,8 @@ interface ProductRepository {
 sealed interface ProductChangeResult {
     data class Applied(val product: ProductResponse) : ProductChangeResult
 
+    data object Duplicate : ProductChangeResult
+
     data object NotFound : ProductChangeResult
 
     data object Stale : ProductChangeResult

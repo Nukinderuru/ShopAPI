@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.util.UUID
 import kotlin.math.max
 import kotlin.random.Random
 
@@ -24,6 +25,7 @@ class ProductEventRepository(
         val newAvailableStock = generateNewAvailableStock(oldAvailableStock)
 
         ProductChangeEvent(
+            eventId = UUID.randomUUID(),
             productId = product[ProductTable.id],
             oldPrice = oldPrice,
             newPrice = newPrice,
@@ -46,7 +48,8 @@ class ProductEventRepository(
 
     private fun generateNewPrice(currentPrice: BigDecimal): BigDecimal {
         val percentDelta = random.nextNonZeroInt(MIN_PRICE_DELTA_PERCENT, MAX_PRICE_DELTA_PERCENT)
-        val multiplier = BigDecimal.valueOf(100L + percentDelta).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+        val multiplier =
+            BigDecimal.valueOf(100L + percentDelta).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
         val generatedPrice = currentPrice.multiply(multiplier)
             .setScale(2, RoundingMode.HALF_UP)
             .max(MIN_PRICE)

@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-processed-product-events
+      author: nukinderuru
+      changes:
+        - createTable:
+            tableName: processed_product_events
+            columns:
+              - column:
+                  name: event_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: product_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processed_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false

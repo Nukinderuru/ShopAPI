@@ -5,9 +5,8 @@ import com.nukinderuru.api.dtos.response.ProductResponse
 import com.nukinderuru.data.repository.ProductChangeResult
 import com.nukinderuru.data.repository.ProductRepository
 import com.nukinderuru.domain.event.ProductUpdateBroadcaster
-import com.nukinderuru.domain.exception.ConflictException
-import com.nukinderuru.domain.exception.NotFoundException
 import com.nukinderuru.domain.exception.ValidationException
+import com.nukinderuru.domain.service.ProductEventProcessingResult
 import com.nukinderuru.domain.service.ProductEventService
 import com.nukinderuru.events.ProductChangeEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,7 +39,7 @@ class ProductEventServiceTest {
 
         val actual = service.process(productChange())
 
-        assertEquals(expected, actual)
+        assertEquals(ProductEventProcessingResult.Applied(expected), actual)
         assertEquals(expected, received.await())
     }
 
@@ -55,7 +54,24 @@ class ProductEventServiceTest {
             broadcaster = broadcaster
         )
 
-        assertFailsWith<NotFoundException> { service.process(productChange()) }
+        assertEquals(ProductEventProcessingResult.NotFound, service.process(productChange()))
+
+        assertFalse(received.isCompleted)
+        received.cancel()
+    }
+
+    @Test
+    fun `process returns duplicate without looking up or broadcasting product`() = runTest {
+        val broadcaster = ProductUpdateBroadcaster()
+        val received = backgroundScope.async(UnconfinedTestDispatcher(testScheduler)) {
+            broadcaster.updates.first()
+        }
+        val service = ProductEventService(
+            repository = StubProductRepository(ProductChangeResult.Duplicate),
+            broadcaster = broadcaster
+        )
+
+        assertEquals(ProductEventProcessingResult.Duplicate, service.process(productChange()))
 
         assertFalse(received.isCompleted)
         received.cancel()
@@ -72,7 +88,7 @@ class ProductEventServiceTest {
             broadcaster = broadcaster
         )
 
-        assertFailsWith<ConflictException> { service.process(productChange()) }
+        assertEquals(ProductEventProcessingResult.Stale, service.process(productChange()))
 
         assertFalse(received.isCompleted)
         received.cancel()
@@ -141,6 +157,7 @@ class ProductEventServiceTest {
     }
 
     private fun productChange() = ProductChangeEvent(
+        eventId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
         productId = PRODUCT_ID,
         oldPrice = BigDecimal("99.99"),
         newPrice = BigDecimal("109.99"),

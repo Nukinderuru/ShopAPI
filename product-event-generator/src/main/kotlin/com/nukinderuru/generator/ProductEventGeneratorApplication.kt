@@ -1,8 +1,5 @@
 package com.nukinderuru.generator
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.Database
 
@@ -11,20 +8,20 @@ fun main() = runBlocking {
     config.createDataSource().use { dataSource ->
         val database = Database.connect(dataSource)
 
-        HttpClient(CIO) {
-            install(HttpTimeout) {
-                requestTimeoutMillis = config.httpTimeout.inWholeMilliseconds
-                connectTimeoutMillis = config.httpTimeout.inWholeMilliseconds
+        config.createRabbitMqConnectionFactory().newConnection().use { connection ->
+            connection.createChannel().use { channel ->
+                channel.exchangeDeclare(config.rabbitMqExchange, "direct", true)
+                ProductEventWorker(
+                    repository = ProductEventRepository(database),
+                    publisher = RabbitMqProductEventPublisher(
+                        RabbitPublisherChannelAdapter(channel),
+                        config.rabbitMqExchange,
+                        config.rabbitMqRoutingKey,
+                        config.rabbitMqConfirmTimeout.inWholeMilliseconds
+                    ),
+                    interval = config.interval
+                ).run()
             }
-        }.use { httpClient ->
-            ProductEventWorker(
-                repository = ProductEventRepository(database),
-                publisher = HttpProductEventPublisher(
-                    httpClient,
-                    config.gatewayUrl
-                ),
-                interval = config.interval
-            ).run()
         }
     }
 }

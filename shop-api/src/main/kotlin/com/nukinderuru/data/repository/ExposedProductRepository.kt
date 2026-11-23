@@ -6,6 +6,7 @@ import com.nukinderuru.common.constants.ValidationConstants
 import com.nukinderuru.common.mapper.toProductDraft
 import com.nukinderuru.common.mapper.toResponse
 import com.nukinderuru.data.db.dao.ImageEntity
+import com.nukinderuru.data.db.dao.ProcessedProductEventTable
 import com.nukinderuru.data.db.dao.ProductEntity
 import com.nukinderuru.data.db.dao.ProductTable
 import com.nukinderuru.data.db.dao.SupplierEntity
@@ -15,9 +16,12 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.update
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 class ExposedProductRepository(private val database: Database) : ProductRepository {
@@ -64,6 +68,13 @@ class ExposedProductRepository(private val database: Database) : ProductReposito
     }
 
     override suspend fun applyProductChange(event: ProductChangeEvent): ProductChangeResult = dbQuery {
+        if (ProcessedProductEventTable.selectAll()
+                .where { ProcessedProductEventTable.eventId eq event.eventId }
+                .any()
+        ) {
+            return@dbQuery ProductChangeResult.Duplicate
+        }
+
         val updatedRows = ProductTable.update({
             (ProductTable.id eq event.productId) and
                     (ProductTable.price eq event.oldPrice) and
@@ -75,6 +86,11 @@ class ExposedProductRepository(private val database: Database) : ProductReposito
         }
 
         if (updatedRows == 1) {
+            ProcessedProductEventTable.insert {
+                it[eventId] = event.eventId
+                it[productId] = event.productId
+                it[processedAt] = LocalDateTime.now()
+            }
             return@dbQuery ProductChangeResult.Applied(
                 requireNotNull(ProductEntity.findById(event.productId)).toResponse()
             )
@@ -82,6 +98,11 @@ class ExposedProductRepository(private val database: Database) : ProductReposito
 
         if (ProductEntity.findById(event.productId) == null) {
             ProductChangeResult.NotFound
+        } else if (ProcessedProductEventTable.selectAll()
+                .where { ProcessedProductEventTable.eventId eq event.eventId }
+                .any()
+        ) {
+            ProductChangeResult.Duplicate
         } else {
             ProductChangeResult.Stale
         }

@@ -6,15 +6,27 @@ import kotlin.time.Duration.Companion.seconds
 
 class GeneratorConfigTest {
     @Test
-    fun `fromEnvironment reads gateway endpoint and timeout`() {
+    fun `fromEnvironment reads rabbitmq connection settings`() {
         val config = GeneratorConfig.fromEnvironment(
             mapOf(
-                "PRODUCT_EVENT_GATEWAY_URL" to "http://app:8080/custom-events",
-                "PRODUCT_EVENT_HTTP_TIMEOUT_SECONDS" to "12"
+                "RABBITMQ_HOST" to "rabbitmq",
+                "RABBITMQ_PORT" to "5673",
+                "RABBITMQ_USERNAME" to "publisher",
+                "RABBITMQ_PASSWORD" to "secret",
+                "RABBITMQ_VHOST" to "/events",
+                "RABBITMQ_EXCHANGE" to "custom.events",
+                "RABBITMQ_ROUTING_KEY" to "custom.changed",
+                "RABBITMQ_CONFIRM_TIMEOUT_SECONDS" to "12",
             )
         )
 
-        assertEquals("http://app:8080/custom-events", config.gatewayUrl)
-        assertEquals(12.seconds, config.httpTimeout)
+        assertEquals("rabbitmq", config.rabbitMqHost)
+        assertEquals(5673, config.rabbitMqPort)
+        assertEquals("publisher", config.rabbitMqUsername)
+        assertEquals("secret", config.rabbitMqPassword)
+        assertEquals("/events", config.rabbitMqVirtualHost)
+        assertEquals("custom.events", config.rabbitMqExchange)
+        assertEquals("custom.changed", config.rabbitMqRoutingKey)
+        assertEquals(12.seconds, config.rabbitMqConfirmTimeout)
     }
 }

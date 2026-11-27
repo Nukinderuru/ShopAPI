@@ -43,6 +43,10 @@ class RabbitMqTopologyIntegrationTest {
                     RabbitMqTopology(config).declare(channel)
                     channel.confirmSelect()
 
+                    (1..ProductEventMessaging.MAX_RETRY_ATTEMPTS).forEach { attempt ->
+                        channel.queueDeclarePassive("${config.mainQueue}.retry.$attempt")
+                    }
+
                     val directBody = "direct".encodeToByteArray()
                     channel.basicPublish(
                         config.exchange,
@@ -55,6 +59,24 @@ class RabbitMqTopologyIntegrationTest {
                     val directDelivery = requireNotNull(channel.basicGet(config.mainQueue, false))
                     assertContentEquals(directBody, directDelivery.body)
                     channel.basicAck(directDelivery.envelope.deliveryTag, false)
+
+                    (1..ProductEventMessaging.MAX_RETRY_ATTEMPTS).forEach { attempt ->
+                        val retryBody = "retry-$attempt".encodeToByteArray()
+                        channel.basicPublish(
+                            config.retryExchange,
+                            ProductEventMessaging.retryRoutingKey(attempt),
+                            true,
+                            persistentProperties(),
+                            retryBody
+                        )
+                        check(channel.waitForConfirms(5_000))
+                        val retryDelivery = requireNotNull(
+                            channel.basicGet(ProductEventMessaging.retryQueue(config.mainQueue, attempt), false)
+                        )
+                        assertContentEquals(retryBody, retryDelivery.body)
+                        channel.basicAck(retryDelivery.envelope.deliveryTag, false)
+                    }
+
 
                     val retryBody = "retry".encodeToByteArray()
                     channel.basicPublish(

@@ -30,7 +30,7 @@ class RabbitMqTopology(private val config: RabbitMqConfig) {
 
         ProductEventMessaging.RETRY_DELAYS_MILLISECONDS.forEachIndexed { index, delayMillis ->
             val attempt = index + 1
-            val retryQueue = ProductEventMessaging.retryQueue(attempt)
+            val retryQueue = ProductEventMessaging.retryQueue(config.mainQueue, attempt)
             channel.queueDeclare(
                 retryQueue,
                 true,

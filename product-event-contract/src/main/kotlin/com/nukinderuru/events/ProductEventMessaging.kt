@@ -14,7 +14,7 @@ object ProductEventMessaging {
     const val MAX_RETRY_ATTEMPTS = 3
     val RETRY_DELAYS_MILLISECONDS = listOf(5_000L, 30_000L, 120_000L)
 
-    fun retryQueue(attempt: Int): String = "$MAIN_QUEUE.retry.$attempt"
+    fun retryQueue(mainQueue: String, attempt: Int): String = "$mainQueue.retry.$attempt"
 
     fun retryRoutingKey(attempt: Int): String = "product.retry.$attempt"
 }

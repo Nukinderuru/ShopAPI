@@ -155,7 +155,7 @@ class ProductEventConsumerSupervisor(
         runCatching { resources.connection.close() }
     }
 
-    private data class SessionResources(
+    private class SessionResources(
         val connection: com.rabbitmq.client.Connection,
         val consumerChannel: com.rabbitmq.client.Channel,
         val publisherChannel: com.rabbitmq.client.Channel,

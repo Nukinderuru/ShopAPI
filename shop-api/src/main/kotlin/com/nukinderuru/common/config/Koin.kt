@@ -18,6 +18,9 @@ import com.nukinderuru.domain.service.ImageService
 import com.nukinderuru.domain.service.ProductEventService
 import com.nukinderuru.domain.service.ProductService
 import com.nukinderuru.domain.service.SupplierService
+import com.nukinderuru.messaging.rabbitmq.ProductEventConsumerSupervisor
+import com.nukinderuru.messaging.rabbitmq.RabbitMqConfig
+import com.nukinderuru.messaging.rabbitmq.RabbitMqTopology
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -61,6 +64,9 @@ fun Application.configureDependencyInjection() {
                 single { ProductUpdateBroadcaster() }
                 single { ProductEventService(get(), get()) }
                 single { SupplierService(get()) }
+                single { RabbitMqConfig.from(environment.config) }
+                single { RabbitMqTopology(get()) }
+                single { ProductEventConsumerSupervisor(get(), get(), get()) }
             }
         )
     }

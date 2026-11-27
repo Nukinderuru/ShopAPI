@@ -8,6 +8,8 @@ import java.util.UUID
 @Serializable
 data class ProductChangeEvent(
     @Serializable(with = EventUuidSerializer::class)
+    val eventId: UUID,
+    @Serializable(with = EventUuidSerializer::class)
     val productId: UUID,
     @Serializable(with = EventBigDecimalSerializer::class)
     val oldPrice: BigDecimal,

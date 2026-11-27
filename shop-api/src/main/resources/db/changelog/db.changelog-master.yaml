@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/001-create-client-schema.yaml
   - include:
       file: db/changelog/002-create-product-schema.yaml
+  - include:
+      file: db/changelog/003-create-processed-product-events.yaml

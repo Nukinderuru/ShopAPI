@@ -3,6 +3,7 @@ package com.nukinderuru
 import com.nukinderuru.common.config.configureDependencyInjection
 import com.nukinderuru.common.config.configureAuthorization
 import com.nukinderuru.common.config.configureLogging
+import com.nukinderuru.common.config.configureRabbitMqLifecycle
 import com.nukinderuru.common.config.configureRouting
 import com.nukinderuru.common.config.configureSerialization
 import com.nukinderuru.common.config.configureStatusPages
@@ -13,6 +14,7 @@ fun Application.module() {
     configureSerialization()
     configureStatusPages()
     configureDependencyInjection()
+    configureRabbitMqLifecycle()
     configureAuthorization()
     configureRouting()
 }

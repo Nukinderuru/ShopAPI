@@ -6,6 +6,7 @@ import com.nukinderuru.data.db.dao.AddressEntity
 import com.nukinderuru.data.db.dao.AddressTable
 import com.nukinderuru.data.db.dao.ImageEntity
 import com.nukinderuru.data.db.dao.ImageTable
+import com.nukinderuru.data.db.dao.ProcessedProductEventTable
 import com.nukinderuru.data.db.dao.ProductEntity
 import com.nukinderuru.data.db.dao.ProductTable
 import com.nukinderuru.data.db.dao.SupplierEntity
@@ -170,7 +171,7 @@ class ExposedProductRepositoryTest {
         repository.applyProductChange(event)
         val duplicateResult = repository.applyProductChange(event)
 
-        assertEquals(ProductChangeResult.Stale, duplicateResult)
+        assertEquals(ProductChangeResult.Duplicate, duplicateResult)
         assertEquals(BigDecimal("109.99"), repository.findById(id)?.price)
         assertEquals(3, repository.findById(id)?.availableStock)
     }
@@ -205,7 +206,7 @@ class ExposedProductRepositoryTest {
             driver = "org.h2.Driver",
         )
         transaction(database) {
-            SchemaUtils.create(AddressTable, ImageTable, SupplierTable, ProductTable)
+            SchemaUtils.create(AddressTable, ImageTable, SupplierTable, ProductTable, ProcessedProductEventTable)
         }
         return database
     }
@@ -217,7 +218,7 @@ class ExposedProductRepositoryTest {
         availableStock: Int = 5,
         lastUpdateDate: LocalDate = LocalDate.of(2024, 1, 1),
         supplierId: UUID? = null,
-        imageId: UUID? = null,
+        imageId: UUID? = null
     ) = CreateProductRequest(
         name = name,
         category = category,
@@ -229,6 +230,7 @@ class ExposedProductRepositoryTest {
     )
 
     private fun productChange(id: UUID) = ProductChangeEvent(
+        eventId = UUID.randomUUID(),
         productId = id,
         oldPrice = BigDecimal("99.99"),
         newPrice = BigDecimal("109.99"),

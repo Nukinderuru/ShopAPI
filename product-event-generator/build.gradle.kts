@@ -7,7 +7,6 @@ val exposedVersion = project.property("exposedVersion") as String
 val postgresVersion = project.property("postgresVersion") as String
 val hikariVersion = project.property("hikariVersion") as String
 val coroutinesVersion = project.property("coroutinesVersion") as String
-val ktorVersion = project.property("ktorVersion") as String
 val kotlinxSerializationVersion = project.property("kotlinxSerializationVersion") as String
 val logbackVersion = project.property("logbackVersion") as String
 val amqpClientVersion = project.property("amqpClientVersion") as String
@@ -30,8 +29,6 @@ dependencies {
     implementation("com.zaxxer:HikariCP:$hikariVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinxSerializationVersion}")
-    implementation("io.ktor:ktor-client-core-jvm:${ktorVersion}")
-    implementation("io.ktor:ktor-client-cio-jvm:${ktorVersion}")
     implementation("com.rabbitmq:amqp-client:${amqpClientVersion}")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 

@@ -1,5 +1,7 @@
 package com.nukinderuru.messaging.rabbitmq
 
+import com.nukinderuru.api.dtos.response.ProductResponse
+import com.nukinderuru.domain.exception.ValidationException
 import com.nukinderuru.domain.service.ProductEventProcessingResult
 import com.nukinderuru.domain.service.ProductEventService
 import com.nukinderuru.events.ProductChangeEvent
@@ -11,15 +13,30 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import java.io.IOException
 import java.math.BigDecimal
 import java.sql.SQLException
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 class ProductEventConsumerTest {
     private val json = Json { encodeDefaults = true }
+
+    @Test
+    fun `applied event is acknowledged without retry`() = runTest {
+        val service = mockk<ProductEventService>()
+        val channel = mockk<Channel>(relaxed = true)
+        coEvery { service.process(any()) } returns ProductEventProcessingResult.Applied(productResponse())
+
+        ProductEventConsumer(service, publisher()).handle(delivery(), channel)
+
+        verify(exactly = 1) { channel.basicAck(1L, false) }
+        verify(exactly = 0) { channel.basicReject(any(), any()) }
+    }
+
 
     @Test
     fun `stale event is acknowledged without retry`() = runTest {
@@ -59,11 +76,41 @@ class ProductEventConsumerTest {
     }
 
     @Test
+    fun `acknowledgement failure is propagated without retry or dead letter publication`() = runTest {
+        val service = mockk<ProductEventService>()
+        val channel = mockk<Channel>(relaxed = true)
+        val messagePublisher = RecordingMessagePublisher()
+        val acknowledgementFailure = IOException("acknowledgement failed")
+        coEvery { service.process(any()) } returns ProductEventProcessingResult.Applied(productResponse())
+        io.mockk.every { channel.basicAck(1L, false) } throws acknowledgementFailure
+
+        assertFailsWith<IOException> {
+            ProductEventConsumer(service, messagePublisher.publisher()).handle(delivery(), channel)
+        }
+
+        kotlin.test.assertEquals(emptyList(), messagePublisher.retryAttempts)
+        kotlin.test.assertEquals(emptyList(), messagePublisher.deadLetterAttempts)
+        verify(exactly = 1) { channel.basicAck(1L, false) }
+    }
+
+    @Test
     fun `invalid json is rejected without requeue`() = runTest {
         val service = mockk<ProductEventService>()
         val channel = mockk<Channel>(relaxed = true)
 
         ProductEventConsumer(service, publisher()).handle(delivery(body = "not-json".encodeToByteArray()), channel)
+
+        verify(exactly = 1) { channel.basicReject(1L, false) }
+        verify(exactly = 0) { channel.basicAck(any(), any()) }
+    }
+
+    @Test
+    fun `business validation is rejected without requeue`() = runTest {
+        val service = mockk<ProductEventService>()
+        val channel = mockk<Channel>(relaxed = true)
+        coEvery { service.process(any()) } throws ValidationException("invalid event")
+
+        ProductEventConsumer(service, publisher()).handle(delivery(), channel)
 
         verify(exactly = 1) { channel.basicReject(1L, false) }
         verify(exactly = 0) { channel.basicAck(any(), any()) }
@@ -83,6 +130,23 @@ class ProductEventConsumerTest {
     }
 
     @Test
+    fun `successful retry publication followed by acknowledgement failure requires channel restart without republishing`() = runTest {
+        val service = mockk<ProductEventService>()
+        val channel = mockk<Channel>(relaxed = true)
+        val messagePublisher = RecordingMessagePublisher()
+        coEvery { service.process(any()) } throws SQLException("temporary", "08006")
+        io.mockk.every { channel.basicAck(1L, false) } throws IOException("acknowledgement failed")
+
+        assertFailsWith<ConsumerChannelRestartRequired> {
+            ProductEventConsumer(service, messagePublisher.publisher()).handle(delivery(), channel)
+        }
+
+        kotlin.test.assertEquals(listOf(1), messagePublisher.retryAttempts)
+        kotlin.test.assertEquals(emptyList(), messagePublisher.deadLetterAttempts)
+        verify(exactly = 1) { channel.basicAck(1L, false) }
+    }
+
+    @Test
     fun `failed retry publication closes session without acknowledging original`() = runTest {
         val service = mockk<ProductEventService>()
         val channel = mockk<Channel>(relaxed = true)
@@ -91,6 +155,59 @@ class ProductEventConsumerTest {
 
         assertFailsWith<ConsumerChannelRestartRequired> {
             ProductEventConsumer(service, messagePublisher.publisher()).handle(delivery(), channel)
+        }
+
+        verify(exactly = 0) { channel.basicAck(any(), any()) }
+    }
+
+    @Test
+    fun `exhausted retry is published to dead letter queue and acknowledged`() = runTest {
+        val service = mockk<ProductEventService>()
+        val channel = mockk<Channel>(relaxed = true)
+        val messagePublisher = RecordingMessagePublisher()
+        coEvery { service.process(any()) } throws SQLException("temporary", "08006")
+
+        ProductEventConsumer(service, messagePublisher.publisher()).handle(
+            delivery(headers = mapOf("x-retry-attempt" to 3)),
+            channel
+        )
+
+        kotlin.test.assertEquals(3, messagePublisher.deadLetterAttempts.single())
+        verify(exactly = 1) { channel.basicAck(1L, false) }
+    }
+
+    @Test
+    fun `successful dead letter publication followed by acknowledgement failure requires channel restart without republishing`() = runTest {
+        val service = mockk<ProductEventService>()
+        val channel = mockk<Channel>(relaxed = true)
+        val messagePublisher = RecordingMessagePublisher()
+        coEvery { service.process(any()) } throws SQLException("temporary", "08006")
+        io.mockk.every { channel.basicAck(1L, false) } throws IOException("acknowledgement failed")
+
+        assertFailsWith<ConsumerChannelRestartRequired> {
+            ProductEventConsumer(service, messagePublisher.publisher()).handle(
+                delivery(headers = mapOf("x-retry-attempt" to 3)),
+                channel
+            )
+        }
+
+        kotlin.test.assertEquals(emptyList(), messagePublisher.retryAttempts)
+        kotlin.test.assertEquals(listOf(3), messagePublisher.deadLetterAttempts)
+        verify(exactly = 1) { channel.basicAck(1L, false) }
+    }
+
+    @Test
+    fun `failed dead letter publication closes session without acknowledging original`() = runTest {
+        val service = mockk<ProductEventService>()
+        val channel = mockk<Channel>(relaxed = true)
+        val messagePublisher = RecordingMessagePublisher(confirmResult = false)
+        coEvery { service.process(any()) } throws SQLException("temporary", "08006")
+
+        assertFailsWith<ConsumerChannelRestartRequired> {
+            ProductEventConsumer(service, messagePublisher.publisher()).handle(
+                delivery(headers = mapOf("x-retry-attempt" to 3)),
+                channel
+            )
         }
 
         verify(exactly = 0) { channel.basicAck(any(), any()) }
@@ -117,10 +234,22 @@ class ProductEventConsumerTest {
 
     private fun publisher(): RabbitMessagePublisher = RecordingMessagePublisher().publisher()
 
+    private fun productResponse() = ProductResponse(
+        id = PRODUCT_ID,
+        name = "Toaster",
+        category = "Kitchen",
+        price = BigDecimal("11.00"),
+        availableStock = 4,
+        lastUpdateDate = LocalDate.of(2026, 11, 20),
+        supplierId = null,
+        imageId = null
+    )
+
     private class RecordingMessagePublisher(
         private val confirmResult: Boolean = true
     ) {
         val retryAttempts = mutableListOf<Int>()
+        val deadLetterAttempts = mutableListOf<Int>()
 
         fun publisher(): RabbitMessagePublisher = RabbitMessagePublisher(
             channel = object : RabbitMessageChannel {
@@ -139,7 +268,14 @@ class ProductEventConsumerTest {
                     body: ByteArray,
                     mandatory: Boolean
                 ) {
-                    properties.headers?.get("x-retry-attempt")?.let { retryAttempts += (it as Number).toInt() }
+                    properties.headers?.get("x-retry-attempt")?.let {
+                        val attempt = (it as Number).toInt()
+                        if (exchange == "product.events.dlx") {
+                            deadLetterAttempts += attempt
+                        } else {
+                            retryAttempts += attempt
+                        }
+                    }
                 }
 
                 override fun waitForConfirms(timeoutMillis: Long): Boolean = confirmResult

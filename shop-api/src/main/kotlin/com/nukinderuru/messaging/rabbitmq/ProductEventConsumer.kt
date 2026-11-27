@@ -85,15 +85,17 @@ class ProductEventConsumer(
                     event.eventId
                 )
             }
-            consumerChannel.basicAck(deliveryTag, false)
         } catch (exception: ValidationException) {
             logger.warn("Rejecting invalid product event {}: {}", event.eventId, exception.message)
             consumerChannel.basicReject(deliveryTag, false)
+            return
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Throwable) {
             handleFailure(delivery, event, headers, exception, consumerChannel)
+            return
         }
+        consumerChannel.basicAck(deliveryTag, false)
     }
 
     private fun handleFailure(
